@@ -74,6 +74,8 @@ Intentos en Higgsfield (todo en su cuenta):
 - **Outfit real** (de su foto en el espejo): pañuelo/wrap gris claro en la cabeza con rizos saliendo atrás, henley gris manga larga, correa negra con hebilla dorada, pantalón negro MUY ancho, mocasines marrón oscuro, pulsera roja de hilo + reloj plateado, aretes cuadrados de diamante. Complexión: alto y delgado normal (ni flaco extremo ni gordo), pelo corto-medio rizado debajo del wrap.
 - Fotos suyas subidas a Higgsfield (media_id): `db28aa2e…` (espejo), `9bb3c30f…`, `93993a30…`, `0b804611…`, `c9176e23…`, `2aa966a4…`, `f37c535f…`, `a880c8ce…`, `ed87e512…`. Le gusta hacerlo **con los lentes negros envolventes** "para que sea más fácil".
 - **Siguiente paso recomendado:** que Rubén se tome una foto real sentado orando con el outfit (pared lisa, buena luz, cuerpo completo; ideal también lado y espalda) y pasarla directo a 3D (Tripo ~34 créditos, o multi-imagen). Alternativas: entrenar Soul ID en Higgsfield, o un artista 3D.
+- **22 nov (Claude Code):** render corregido `e82a6796…` (espalda recta pero wrap deformado; su 3D `70bd08aa…` se gastó por error). **Render final elegido: `c103598f-f930-4256-a51b-107070a9dea4`** (pose del primero + espalda recta + wrap redondo; copia en `escondite/rainn/rainn-orando-ref.png`). **3D final: job `6134c7ed-7d6a-4437-af25-bf36d5fe1d73`** (GLB en cloudfront `d8j0ntlcm91z4`, host bloqueado en la sesión cloud).
+- Animación: por código (respiración + balanceo leve + cabeza), NO rig — no hay animación de orar en la librería y el auto-rig falla sentado.
 - Para meter un GLB en el escondite: cargarlo con `GLTFLoader` (r128 examples) y aplicarle `glossify()` + la luz de su charco.
 
 ## Pendientes
