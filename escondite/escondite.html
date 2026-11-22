@@ -1500,7 +1500,11 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     "«Por favor, no me desampares en esta noche lluviosa.»",
     "«Cuida a 1080, Dios. Es lo único que te pido, incluso si tengo que sufrir yo.»",
     "«Gracias por ser mi guía cuando la lluvia no me deja ver. Te ruego que nunca me dejes caer…»",
-    "«Cuídame de estas tentaciones que me rodean. Sé que quieres que huya… pero también soy humano… Ayúdame.»"
+    "«Cuídame de estas tentaciones que me rodean. Sé que quieres que huya… pero también soy humano… Ayúdame.»",
+    "«Señor, quítame el sueño, quítame la paz, quítame lo que quieras… pero no me quites a mi gente.»",
+    "«Dame enemigos fuertes, Dios… así nunca me olvido de rezar.»",
+    "«No te pido que pare la tormenta. Te pido que me enseñes a caminar dentro de ella.»",
+    "«Lávame con esta lluvia, Señor. Hay cosas que ni yo me atrevo a mirar.»"
   ], lastPrayer = -1;
   function nextPrayer() { var k; do { k = Math.floor(Math.random() * PRAYERS.length); } while (k === lastPrayer && PRAYERS.length > 1); lastPrayer = k; return PRAYERS[k]; }
   function typeLine(txt, speed, done) {
