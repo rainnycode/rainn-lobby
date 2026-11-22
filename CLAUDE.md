@@ -54,7 +54,7 @@ Página = **mundo 3D que se explora como un juego**: "el escondite de rainn".
 | Tablero de expedientes MÚSICA / OTRAS COSAS (BASKIAT, PASH, SYS VINTAGE) | Colaboraciones | ✅ código (Rubén lo aprobó: "así está bien") |
 | Repisa de figuras: rainn, Sebs (martillo/gorra), Kim Atenea (espíritu de agua), JD RED (piel roja, mono negro, llamas) | Bio + universo + personajes | ⏳ placeholder — falta 3D |
 | Maniquí 1080 (ropa negra, pañuelo blanco) + perchero | 1080 | ⏳ placeholder — falta 3D |
-| **rainn sentado orando, manos juntas** (NO clickeable) | — | ⏳ en curso (ver abajo) |
+| **rainn sentado orando, manos juntas** (NO clickeable) | — | ✅ en escena (`escondite/rainn/rainn-orando-final.glb` + `.json` para artifacts); cara: pendiente foto de frente para proyectar |
 
 ## Técnico del escondite
 - Three.js **r128** desde cdnjs; postprocesado desde jsDelivr `three@0.128.0/examples/js` (CopyShader, LuminosityHighPassShader, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass).
@@ -75,6 +75,8 @@ Intentos en Higgsfield (todo en su cuenta):
 - Fotos suyas subidas a Higgsfield (media_id): `db28aa2e…` (espejo), `9bb3c30f…`, `93993a30…`, `0b804611…`, `c9176e23…`, `2aa966a4…`, `f37c535f…`, `a880c8ce…`, `ed87e512…`. Le gusta hacerlo **con los lentes negros envolventes** "para que sea más fácil".
 - **Siguiente paso recomendado:** que Rubén se tome una foto real sentado orando con el outfit (pared lisa, buena luz, cuerpo completo; ideal también lado y espalda) y pasarla directo a 3D (Tripo ~34 créditos, o multi-imagen). Alternativas: entrenar Soul ID en Higgsfield, o un artista 3D.
 - **22 nov (Claude Code):** render corregido `e82a6796…` (espalda recta pero wrap deformado; su 3D `70bd08aa…` se gastó por error). **Render final elegido: `c103598f-f930-4256-a51b-107070a9dea4`** (pose del primero + espalda recta + wrap redondo; copia en `escondite/rainn/rainn-orando-ref.png`). **3D final: job `6134c7ed-7d6a-4437-af25-bf36d5fe1d73`** (GLB en cloudfront `d8j0ntlcm91z4`, host bloqueado en la sesión cloud).
+- **En escena (22 nov):** sobre el bloque de concreto en (-3.2, 0, -4.4), escala 2.3, respiración + balanceo por shader (`loadRainn`). Tela de atrás y cuña de caja quitadas (`pruebas/visor/cut.py`), piel menos naranja (`piel.py`). Artifacts no sirven .glb → se publica `rainn-orando-final.json` (glTF embebido); la página prueba .glb y luego .json.
+- Proyección de cara con foto 3/4 (`proj.py`): Rubén dijo "se ve raro". Va a mandar **foto de frente** (ojos cerrados, cabeza un poco agachada, wrap, luz pareja) para reintentar.
 - Animación: por código (respiración + balanceo leve + cabeza), NO rig — no hay animación de orar en la librería y el auto-rig falla sentado.
 - Para meter un GLB en el escondite: cargarlo con `GLTFLoader` (r128 examples) y aplicarle `glossify()` + la luz de su charco.
 
