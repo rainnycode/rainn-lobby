@@ -1501,7 +1501,16 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   /* ---------- rainn: text box (old RPG style) ---------- */
   var talk = { on: false, typing: null, full: "", step: 0, sel: 0 };
   var dlg = document.getElementById("dlg"), dlgText = document.getElementById("dlg-text"), dlgOpts = document.getElementById("dlg-opts");
-  var LINES = { hush: "Shhhh… rainn está orando.", prayer: "«Oh Dios, cuida a los míos, y a mis enemigos. No me desampares, sé mi guía en noche lluviosa.»" };
+  var LINES = { hush: "Shhhh… rainn está orando." };
+  // rainn's prayers (his words); one at random each time, never the same twice in a row.
+  var PRAYERS = [
+    "«Oh Dios, cuida a los míos, bendice a mis enemigos, pero en caso de tener que enfrentarlos, dame las fuerzas para vencerlos en el nombre de Cristo Jesús… amén.»",
+    "«Por favor, no me desampares en esta noche lluviosa.»",
+    "«Cuida a 1080, Dios. Es lo único que te pido, incluso si tengo que sufrir yo.»",
+    "«Gracias por ser mi guía cuando la lluvia no me deja ver. Te ruego que nunca me dejes caer…»",
+    "«Cuídame de estas tentaciones que me rodean. Sé que quieres que huya… pero también soy humano… Ayúdame.»"
+  ], lastPrayer = -1;
+  function nextPrayer() { var k; do { k = Math.floor(Math.random() * PRAYERS.length); } while (k === lastPrayer && PRAYERS.length > 1); lastPrayer = k; return PRAYERS[k]; }
   function typeLine(txt, speed, done) {
     clearInterval(talk.typing); talk.full = txt; dlg.classList.remove("more"); dlgText.textContent = "";
     var k = 0;
@@ -1509,7 +1518,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     var t0 = performance.now();  // time-based, so a slow frame rate doesn't slow the text down
     talk.typing = setInterval(function () { k = Math.min(txt.length, Math.floor((performance.now() - t0) / speed)); dlgText.textContent = txt.slice(0, k); if (k >= txt.length) { clearInterval(talk.typing); talk.typing = null; done(); } }, 30);
   }
-  function showOpts(on) { dlgOpts.hidden = !on; if (on) { talk.sel = 0; markOpt(); } }
+  function showOpts(on, again) { dlgOpts.hidden = !on; if (on) { dlgOpts.querySelector('[data-opt="0"]').textContent = again ? "Escuchar otra" : "Escuchar oración"; talk.sel = 0; markOpt(); } }
   function markOpt() { dlgOpts.querySelectorAll("button").forEach(function (b, k) { b.classList.toggle("sel", k === talk.sel); }); }
   function talkRainn() {
     talk.on = true; talk.step = 0; activeIdx = RAINN; hideLock(); hideHint();
@@ -1525,13 +1534,12 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   function choose(k) {
     showOpts(false);
-    if (k === 0) { talk.step = 2; typeLine(LINES.prayer, 55, function () { talk.step = 3; dlg.classList.add("more"); }); }
+    if (k === 0) { talk.step = 2; typeLine(nextPrayer(), 50, function () { talk.step = 3; showOpts(true, true); }); }
     else endTalk();
   }
   function advance() {
     if (!talk.on) return;
-    if (talk.typing) { clearInterval(talk.typing); talk.typing = null; dlgText.textContent = talk.full; if (talk.step === 0) { talk.step = 1; showOpts(true); } else if (talk.step === 2) { talk.step = 3; dlg.classList.add("more"); } return; }
-    if (talk.step === 3) endTalk();
+    if (talk.typing) { clearInterval(talk.typing); talk.typing = null; dlgText.textContent = talk.full; if (talk.step === 0) { talk.step = 1; showOpts(true); } else if (talk.step === 2) { talk.step = 3; showOpts(true, true); } return; }
   }
   function endTalk() {
     if (!talk.on) return;
