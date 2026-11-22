@@ -254,6 +254,7 @@ body.panel-open.touch .hud-bottom { display: none; }
 <script src="vendor/RenderPass.js"></script>
 <script src="vendor/ShaderPass.js"></script>
 <script src="vendor/UnrealBloomPass.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
 <script>
 (function () {
   "use strict";
@@ -454,16 +455,9 @@ body.panel-open.touch .hud-bottom { display: none; }
     // reserved spot: rainn sitting, hands together (placeholder)
     var seat = new THREE.Group();
     seat.add(at(box(3, .7, 1, concrete), 0, .35, 0));
-    var black = M(0x15171a), grey = M(0x9aa0a6), band = M(0xe8e8e8);
-    seat.add(at(box(.9, 1.1, .6, black), 0, 1.3, 0));
-    seat.add(at(box(.38, .3, 1.0, grey), -.22, .85, .45)); seat.add(at(box(.38, .3, 1.0, grey), .22, .85, .45));
-    seat.add(at(box(.34, .9, .34, grey), -.22, .45, .95)); seat.add(at(box(.34, .9, .34, grey), .22, .45, .95));
-    var head = new THREE.Mesh(new THREE.IcosahedronGeometry(.36, 0), M(0x8a6a55)); at(head, 0, 2.05, .12); head.rotation.x = .35; seat.add(head);
-    seat.add(at(box(.78, .2, .78, band), 0, 2.27, .1));
-    var hands = at(box(.22, .45, .22, M(0x8a6a55)), 0, 1.75, .55); hands.rotation.x = -.4; seat.add(hands);
-    seat.add(at(box(.24, .6, .24, black), -.32, 1.45, .4)); seat.add(at(box(.24, .6, .24, black), .32, 1.45, .4));
+    loadRainn(seat);
     seat.position.set(-3.2, 0, -4.4); seat.rotation.y = .5; scene.add(seat);
-    var seatLight = new THREE.SpotLight(0xdde6ff, 1.1, 10, .35, .6, 1); seatLight.position.set(-3.2, 9, -3.6); seatLight.target = seat; scene.add(seatLight);
+    var seatLight = new THREE.SpotLight(0xdde6ff, 7, 12, .3, .55, 1); seatLight.position.set(-2.6, 9, -2.6); seatLight.target = seat; scene.add(seatLight);
   }
 
 
@@ -482,6 +476,39 @@ body.panel-open.touch .hud-bottom { display: none; }
   function rnd(seed) { var s = seed || 1; return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
   function px(x, c, X, Y, W, H) { x.fillStyle = c; x.fillRect(X, Y, W, H); }
   function Std(o) { return new THREE.MeshStandardMaterial(o); }
+
+  /* ---------- rainn praying (GLB from Tripo, not clickable) ---------- */
+  // Model space: faces +X, seated, ~1 unit tall, hips around x -.17 / y -.19.
+  // Motion is done in the vertex shader (no rig): breathing on the chest + a slow rock from the hips.
+  var rainnTime = { value: 0 };
+  function loadRainn(parent) {
+    if (!THREE.GLTFLoader) return;
+    new THREE.GLTFLoader().load("rainn/rainn-orando-final.glb", function (gltf) {
+      var m = gltf.scene, S = 2.3;
+      m.scale.setScalar(S); m.rotation.y = -Math.PI / 2; m.position.set(0, .5 * S, .36);
+      m.traverse(function (o) {
+        if (!o.isMesh) return;
+        var src = o.material, p = new THREE.MeshPhysicalMaterial();
+        THREE.MeshStandardMaterial.prototype.copy.call(p, src); p.defines = { STANDARD: "", PHYSICAL: "" };
+        p.roughness = .55; p.metalness = 0; p.clearcoat = .25; p.clearcoatRoughness = .45; p.envMapIntensity = 1.2;
+        p.onBeforeCompile = function (sh) {
+          sh.uniforms.uT = rainnTime;
+          sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", [
+            "#include <begin_vertex>",
+            "float br = sin(uT * 1.5);",
+            "float wc = smoothstep(-.12, .04, position.y) * (1. - smoothstep(.2, .3, position.y));",
+            "transformed += objectNormal * wc * .0035 * br;",
+            "float wr = smoothstep(-.26, -.1, position.y);",
+            "float a = wr * (.012 * sin(uT * .45) + .004 * br);",
+            "vec2 q = transformed.xy - vec2(-.17, -.19);",
+            "transformed.xy = vec2(q.x * cos(a) - q.y * sin(a), q.x * sin(a) + q.y * cos(a)) + vec2(-.17, -.19);"
+          ].join("\n"));
+        };
+        o.material = p; o.castShadow = !isTouch; o.receiveShadow = true;
+      });
+      parent.add(m);
+    }, undefined, function () { /* sin modelo: la escena sigue igual */ });
+  }
 
 
   /* ---------- model factories (approved models) ---------- */
@@ -1304,7 +1331,7 @@ body.panel-open.touch .hud-bottom { display: none; }
     return { g: grp, tick: expTick };
   }
 
-  var ticks = [];
+  var ticks = [function (t) { rainnTime.value = t; }];
   /* each builder returns a group facing +z */
   var B = {
     bio: function () {
