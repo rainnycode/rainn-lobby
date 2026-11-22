@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/rainn", "destination": "/rainn/index.html" }
+  ]
+}

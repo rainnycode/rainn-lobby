@@ -1,0 +1,4 @@
+Pruebas automáticas (opcional)
+1) npm install            (instala three@0.128.0 local)
+2) pip install playwright && playwright install chromium
+3) python test.py         (saca capturas del escondite en PC y celular)

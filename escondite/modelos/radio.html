@@ -1,0 +1,296 @@
+<title>Radio del escondite</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one object on a turntable in a pool of hard light; caption bottom-left, controls bottom-right. Single dark look. */
+:root {
+  --bg: #030405;
+  --fg: #f1f1f1;
+  --muted: #b3b8c2;
+  --line: #262a32;
+  --red: #ff2338;
+  --display: "Inter Tight", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); overflow: hidden; font-family: var(--mono); }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#c:active { cursor: grabbing; }
+.cap { position: fixed; left: 0; bottom: 0; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+.cap span { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.cap b { font-family: var(--display); font-weight: 800; font-size: 32px; letter-spacing: -.02em; }
+.ctrl { position: fixed; right: 0; bottom: 0; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 60%; }
+.ctrl button { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--fg); background: rgba(20,23,29,.85); border: 1px solid var(--line); padding: 10px 14px; min-height: 44px; cursor: pointer; }
+.ctrl button[aria-pressed="true"] { border-color: var(--red); }
+.ctrl button:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.tip { position: fixed; top: 0; left: 0; right: 0; text-align: center; padding-top: calc(16px + env(safe-area-inset-top, 0px)); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); pointer-events: none; }
+@media (max-width: 600px) { .cap b { font-size: 24px; } .ctrl { max-width: 100%; left: 0; justify-content: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); bottom: 70px; } }
+</style>
+
+<canvas id="c" aria-label="Modelo 3D de la radio de campaña girando"></canvas>
+<div class="tip">Arrastra para girar</div>
+<div class="cap"><span>Modelo 6 de 11 · gráficos modernos</span><b>Radio · Contacto</b></div>
+<div class="ctrl">
+  <button type="button" id="b-spin" aria-pressed="true">Girar solo</button>
+  <button type="button" id="b-close" aria-pressed="false">Ver de cerca</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+(function () {
+  "use strict";
+  var canvas = document.getElementById("c");
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x030405);
+  scene.fog = new THREE.FogExp2(0x030405, .075);
+  var camera = new THREE.PerspectiveCamera(34, 1, .05, 80);
+  var spin = true, close = false;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { spin = false; document.getElementById("b-spin").setAttribute("aria-pressed", "false"); }
+  var isPhone = matchMedia("(pointer: coarse)").matches;
+  var maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+  /* ---------- helpers ---------- */
+  function canvasTex(w, h, draw, opts) {
+    opts = opts || {};
+    var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    var x = cv.getContext("2d"); draw(x, w, h);
+    var t = new THREE.CanvasTexture(cv);
+    if (opts.pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; }
+    else t.anisotropy = maxAniso;
+    if (opts.color !== false) t.encoding = THREE.sRGBEncoding;
+    t.userData = { ctx: x };
+    return t;
+  }
+  function rnd(seed) { var s = seed || 1; return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+  function px(x, c, X, Y, W, H) { x.fillStyle = c; x.fillRect(X, Y, W, H); }
+  function Std(o) { return new THREE.MeshStandardMaterial(o); }
+
+  /* soft environment for reflections: dark room with a few light panels */
+  (function () {
+    var env = new THREE.Scene();
+    var box = new THREE.Mesh(new THREE.BoxGeometry(20, 12, 20), new THREE.MeshBasicMaterial({ color: 0x07090c, side: THREE.BackSide }));
+    env.add(box);
+    var panel = function (x, y, z, w, h, c, ry, rx) { var m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide })); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, 0); env.add(m); };
+    panel(0, 5.9, 0, 3, 3, 0xe8f0ff, 0, Math.PI / 2);
+    panel(-9.9, 3, 2, 4, 1.2, 0x5a6a80, Math.PI / 2);
+    panel(9.9, 2.5, -3, 3, 1, 0x3a4a60, -Math.PI / 2);
+    panel(0, 2, -9.9, 2, 1, 0x8a1020);
+    panel(-4, 5.9, -3, .3, 6, 0xcfdcff, 0, Math.PI / 2); panel(4, 5.9, 3, .3, 6, 0xcfdcff, 0, Math.PI / 2);
+    panel(-9.9, 4.5, -4, 6, .25, 0x9fb0cc, Math.PI / 2); panel(9.9, 4.5, 4, 6, .25, 0x9fb0cc, -Math.PI / 2); panel(3, 3, 9.9, 3, .4, 0x7a8aa6, Math.PI);
+    var pm = new THREE.PMREMGenerator(renderer);
+    scene.environment = pm.fromScene(env, .04).texture;
+  })();
+
+  /* ---------- field radio (contact) ---------- */
+  var rd = new THREE.Group();
+  function add(m, parent) { m.castShadow = true; m.receiveShadow = true; (parent || rd).add(m); return m; }
+  var chrome = Std({ color: 0xdfe3e8, roughness: .12, metalness: 1 });
+  var steel = Std({ color: 0x7a8088, roughness: .32, metalness: .9 });
+  var black = Std({ color: 0x0b0b0d, roughness: .4, metalness: .2 });
+  var rubber = Std({ color: 0x141414, roughness: .85 });
+
+  // wooden crate
+  var woodTex = canvasTex(256, 256, function (x, w, h) { var r = rnd(8); px(x, "#6e5134", 0, 0, w, h); for (var i = 0; i < 4; i++) { px(x, "rgba(30,20,10,.55)", 0, i * 64, w, 3); } for (var k = 0; k < 160; k++) { x.strokeStyle = "rgba(" + (r() > .5 ? "120,90,60" : "40,28,16") + "," + r() * .4 + ")"; x.lineWidth = .8; var y = r() * h; x.beginPath(); x.moveTo(0, y); x.lineTo(w, y + (r() - .5) * 6); x.stroke(); } x.fillStyle = "rgba(20,20,20,.55)"; x.font = "700 30px 'Courier New', monospace"; x.fillText("FRÁGIL", 60, 140); });
+  var crate = add(new THREE.Mesh(new THREE.BoxGeometry(1.1, .7, .8), Std({ map: woodTex, roughness: .85 }))); crate.position.set(0, .35, 0);
+
+  // radio body: olive, rounded edges
+  var olive = Std({ color: 0x3e4a2c, roughness: .6, metalness: .25 });
+  function rbox(w, h, d, r, m) {
+    var s = new THREE.Shape(); s.moveTo(-w / 2 + r, -h / 2); s.lineTo(w / 2 - r, -h / 2); s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r); s.lineTo(w / 2, h / 2 - r); s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2); s.lineTo(-w / 2 + r, h / 2); s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r); s.lineTo(-w / 2, -h / 2 + r); s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+    var g = new THREE.ExtrudeGeometry(s, { depth: d - .04, bevelEnabled: true, bevelThickness: .02, bevelSize: .02, bevelSegments: 3, curveSegments: 6 }); g.translate(0, 0, -(d - .04) / 2); return new THREE.Mesh(g, m);
+  }
+  var radio = new THREE.Group(); radio.position.set(-.05, .7 + .26, .02); rd.add(radio);
+  add(rbox(.78, .5, .46, .05, olive), radio);
+  var face = add(new THREE.Mesh(new THREE.BoxGeometry(.72, .44, .02), Std({ color: 0x1d2416, roughness: .7 })), radio); face.position.z = .235;
+  // frequency display
+  var disp = canvasTex(256, 64, function () {}, {});
+  var dmesh = new THREE.Mesh(new THREE.PlaneGeometry(.34, .085), new THREE.MeshBasicMaterial({ map: disp, toneMapped: false })); dmesh.position.set(-.13, .12, .247); radio.add(dmesh);
+  var bezel = add(new THREE.Mesh(new THREE.BoxGeometry(.37, .11, .015), black), radio); bezel.position.set(-.13, .12, .24);
+  // dials
+  var dialM = Std({ color: 0x111111, roughness: .35, metalness: .3 });
+  [[-.25, -.07, .07], [-.03, -.07, .05], [.2, .12, .06], [.2, -.08, .045]].forEach(function (d0) {
+    var dl = add(new THREE.Mesh(new THREE.CylinderGeometry(d0[2], d0[2] * 1.08, .05, 24), dialM), radio); dl.rotation.x = Math.PI / 2; dl.position.set(d0[0], d0[1], .26);
+    var mark = add(new THREE.Mesh(new THREE.BoxGeometry(.008, d0[2] * .8, .01), Std({ color: 0xe9e2c8, roughness: .5 })), radio); mark.position.set(d0[0], d0[1] + d0[2] * .4, .288);
+  });
+  // toggle switches + jack + speaker
+  [0, 1, 2].forEach(function (k) { var sw = add(new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .05, 8), chrome), radio); sw.rotation.x = Math.PI / 2 - .5; sw.position.set(.06 + k * .045, .13, .265); });
+  var jack = add(new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .03, 14), steel), radio); jack.rotation.x = Math.PI / 2; jack.position.set(.31, -.17, .25);
+  for (var g0 = 0; g0 < 6; g0++) { var sl = add(new THREE.Mesh(new THREE.BoxGeometry(.012, .1, .01), black), radio); sl.position.set(.08 + g0 * .028, -.12, .25); }
+  var rled = new THREE.Mesh(new THREE.CircleGeometry(.012, 10), new THREE.MeshBasicMaterial({ color: 0xff2338, toneMapped: false })); rled.position.set(.31, .18, .247); radio.add(rled);
+  // carry handles
+  [-.3, .3].forEach(function (x) { var hd = add(new THREE.Mesh(new THREE.TorusGeometry(.06, .012, 8, 16, Math.PI), steel), radio); hd.position.set(x, .27, 0); });
+  // whip antenna (sways)
+  var ant = new THREE.Group(); ant.position.set(.33, .27, -.15); radio.add(ant);
+  add(new THREE.Mesh(new THREE.CylinderGeometry(.02, .025, .06, 12), black), ant).position.y = .03;
+  var whip = add(new THREE.Mesh(new THREE.CylinderGeometry(.004, .008, 1.9, 6), Std({ color: 0x222222, roughness: .4, metalness: .6 })), ant); whip.position.y = 1.0;
+  var tip = add(new THREE.Mesh(new THREE.SphereGeometry(.012, 8, 6), black), ant); tip.position.y = 1.96;
+  // handset on a coiled cord, headphones on top
+  var hs = new THREE.Group(); hs.position.set(-.42, .12, .38); hs.rotation.set(0, .4, Math.PI / 2 + .1); rd.add(hs);
+  hs.position.set(-.48, .73, .22); hs.rotation.set(Math.PI / 2, 0, .6);
+  add(new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .22, 12), Std({ color: 0x1a1d14, roughness: .7 })), hs);
+  [-.11, .11].forEach(function (y) { add(new THREE.Mesh(new THREE.CylinderGeometry(.04, .035, .05, 16), Std({ color: 0x1a1d14, roughness: .7 })), hs).position.y = y; });
+  var coilPts = []; for (var c = 0; c <= 160; c++) { var tt = c / 160; coilPts.push(new THREE.Vector3(-.43 + tt * .1 + Math.cos(tt * 60) * .018, .76 + Math.sin(tt * Math.PI) * .12 + tt * .05, .1 - tt * .05 + Math.sin(tt * 60) * .018)); }
+  add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(coilPts), 400, .005, 5), black));
+  var phones = new THREE.Group(); phones.position.set(-.1, .7 + .53, -.02); phones.rotation.set(-.15, .4, 0); rd.add(phones);
+  add(new THREE.Mesh(new THREE.TorusGeometry(.12, .012, 8, 24, Math.PI), Std({ color: 0x1a1a1a, roughness: .5 })), phones).rotation.x = -Math.PI / 2 + .15;
+  [-.12, .12].forEach(function (x) { var cup = add(new THREE.Mesh(new THREE.CylinderGeometry(.055, .055, .04, 20), Std({ color: 0x1a1d14, roughness: .7 })), phones); cup.position.set(x, -.02, 0); cup.rotation.z = Math.PI / 2; });
+
+  // notepad with the contact written on it
+  var noteTex = canvasTex(256, 320, function (x, w, h) {
+    px(x, "#efe9d8", 0, 0, w, h); x.strokeStyle = "rgba(90,120,160,.35)"; x.lineWidth = 1; for (var y = 50; y < h; y += 26) { x.beginPath(); x.moveTo(10, y); x.lineTo(w - 10, y); x.stroke(); }
+    px(x, "rgba(200,40,40,.4)", 30, 0, 2, h);
+    x.fillStyle = "#1a1a2a"; x.font = "italic 700 20px 'Segoe Script', 'Brush Script MT', cursive";
+    x.fillText("CONTACTO", 44, 42); x.font = "italic 600 17px 'Segoe Script', 'Brush Script MT', cursive";
+    x.fillText("contactrainn", 44, 94); x.fillText("@gmail.com", 44, 120); x.fillText("+507 6591-4498", 44, 172); x.fillText("@iluvrainnsomuch", 44, 224);
+    x.strokeStyle = "#c4111f"; x.lineWidth = 3; x.beginPath(); x.arc(196, 280, 18, 0, Math.PI * 2); x.stroke(); x.beginPath(); x.moveTo(196, 254); x.lineTo(196, 306); x.moveTo(170, 280); x.lineTo(222, 280); x.stroke();
+    for (var s = 0; s < 9; s++) px(x, "#777", 20 + s * 26, 4, 10, 8);
+  });
+  var note = add(new THREE.Mesh(new THREE.BoxGeometry(.24, .006, .3), Std({ map: noteTex, roughness: .8 }))); note.position.set(.34, .705, .2); note.rotation.y = -.35;
+  var pen = add(new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .15, 8), Std({ color: 0xc4111f, roughness: .3 }))); pen.rotation.set(0, .2, Math.PI / 2); pen.position.set(.36, .713, .03);
+
+  // sandbags behind
+  var bagTex = canvasTex(128, 128, function (x, w, h) { var r = rnd(3); px(x, "#6e6448", 0, 0, w, h); x.strokeStyle = "rgba(40,34,20,.35)"; x.lineWidth = 1; for (var i = 0; i < w; i += 3) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, h); x.stroke(); } for (var j = 0; j < h; j += 3) { x.beginPath(); x.moveTo(0, j); x.lineTo(w, j); x.stroke(); } for (var k = 0; k < 40; k++) { x.fillStyle = "rgba(30,24,14," + r() * .3 + ")"; x.beginPath(); x.arc(r() * w, r() * h, 2 + r() * 8, 0, Math.PI * 2); x.fill(); } });
+  var bagM = Std({ map: bagTex, roughness: .95 });
+  function bag(x, y, z, ry) { var g = new THREE.SphereGeometry(.3, 18, 12), p = g.attributes.position; for (var i = 0; i < p.count; i++) { p.setX(i, p.getX(i) * 1.35); p.setY(i, p.getY(i) * .62 * (1 - Math.abs(p.getX(i)) * .12)); p.setZ(i, p.getZ(i) * .85); } g.computeVertexNormals(); var m = add(new THREE.Mesh(g, bagM)); m.position.set(x, y, z); m.rotation.y = ry; }
+  bag(-.85, .18, -.7, .06); bag(-.05, .18, -.74, -.03); bag(.75, .18, -.7, .05); bag(-.45, .5, -.72, -.04); bag(.35, .5, -.74, .03); bag(1.35, .18, -.35, -.7);
+
+  var turn = new THREE.Group(); turn.add(rd); scene.add(turn);
+  var dispLight = new THREE.PointLight(0xffb347, .7, 1.4, 2); dispLight.position.set(-.18, 1.2, .6); rd.add(dispLight);
+
+  function radioTick(t) {
+    var x = disp.userData.ctx, w = 256, h = 64;
+    px(x, "#120b02", 0, 0, w, h);
+    x.fillStyle = "#ffb347"; x.font = "bold 34px monospace"; x.fillText("108.0", 12, 44); x.font = "bold 14px monospace"; x.fillText("MHz", 124, 44);
+    var msg = "  CONTACTO · CONTACTRAINN@GMAIL.COM · +507 6591-4498 · @ILUVRAINNSOMUCH ·", off = Math.floor(t * 8) % msg.length;
+    x.font = "bold 13px monospace"; x.fillText((msg + msg).substr(off, 11), 168, 26);
+    for (var b = 0; b < 10; b++) { var lv = Math.abs(Math.sin(t * 5 + b * .7)) * 14; px(x, b > 7 ? "#ff4757" : "#ffb347", 168 + b * 8, 52 - lv, 5, lv); }
+    disp.needsUpdate = true;
+    ant.rotation.z = Math.sin(t * 1.3) * .03; ant.rotation.x = Math.sin(t * .9) * .02;
+    rled.visible = Math.floor(t * 1.5) % 2 === 0;
+  }
+
+  /* ---------- wet concrete floor ---------- */
+  var floorCol = canvasTex(1024, 1024, function (x, w, h) {
+    px(x, "#3d4146", 0, 0, w, h); var r = rnd(11);
+    for (var i = 0; i < 6000; i++) { var v = 45 + Math.floor(r() * 40); x.fillStyle = "rgba(" + v + "," + (v + 2) + "," + (v + 6) + "," + (.25 + r() * .35) + ")"; x.fillRect(r() * w, r() * h, 1 + r() * 4, 1 + r() * 4); }
+    for (var j = 0; j < 30; j++) { x.fillStyle = "rgba(20,22,26," + (.1 + r() * .15) + ")"; x.beginPath(); x.ellipse(r() * w, r() * h, 30 + r() * 120, 20 + r() * 80, r() * 3, 0, Math.PI * 2); x.fill(); }
+    x.strokeStyle = "rgba(15,16,18,.6)"; x.lineWidth = 2; x.beginPath(); x.moveTo(0, h / 2); x.lineTo(w, h / 2); x.moveTo(w / 2, 0); x.lineTo(w / 2, h); x.stroke();
+  });
+  floorCol.wrapS = floorCol.wrapT = THREE.RepeatWrapping; floorCol.repeat.set(6, 6);
+  var floorRough = canvasTex(512, 512, function (x, w, h) {
+    px(x, "#c8c8c8", 0, 0, w, h); var r = rnd(5);
+    for (var j = 0; j < 22; j++) { var g = x.createRadialGradient(0, 0, 0, 0, 0, 1); var cx = r() * w, cy = r() * h, rad = 20 + r() * 70; g = x.createRadialGradient(cx, cy, 0, cx, cy, rad); g.addColorStop(0, "rgba(20,20,20,.95)"); g.addColorStop(1, "rgba(20,20,20,0)"); x.fillStyle = g; x.fillRect(cx - rad, cy - rad, rad * 2, rad * 2); }
+  }, { color: false });
+  floorRough.wrapS = floorRough.wrapT = THREE.RepeatWrapping; floorRough.repeat.set(6, 6);
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), Std({ map: floorCol, roughnessMap: floorRough, roughness: 1, metalness: 0, envMapIntensity: .9 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+  var puddle = new THREE.Mesh(new THREE.CircleGeometry(1, 40), Std({ color: 0x050607, roughness: .02, metalness: .0, envMapIntensity: 2.2 }));
+  puddle.rotation.x = -Math.PI / 2; puddle.scale.set(1.1, .6, 1); puddle.position.set(1.5, .004, 1.3); puddle.receiveShadow = true; scene.add(puddle);
+
+  /* ---------- light: one hard work lamp + faint fill ---------- */
+  scene.add(new THREE.HemisphereLight(0x5a6c88, 0x050505, .18));
+  var spot = new THREE.SpotLight(0xe6eeff, 17, 20, .38, .35, 1.6);
+  spot.position.set(.2, 8.5, 1.0); spot.target.position.set(0, .7, 0);
+  spot.castShadow = true; spot.shadow.mapSize.set(isPhone ? 1024 : 2048, isPhone ? 1024 : 2048); spot.shadow.bias = -.0002; spot.shadow.normalBias = .03; spot.shadow.radius = 3;
+  scene.add(spot); scene.add(spot.target);
+  var rim = new THREE.DirectionalLight(0x6f86b0, .35); rim.position.set(-4, 3, -5); scene.add(rim);
+  // the lamp itself
+  var lampHead = new THREE.Mesh(new THREE.CylinderGeometry(.18, .32, .3, 20, 1, true), steel); lampHead.position.set(.3, 8.6, 1.2); scene.add(lampHead);
+  var bulb = new THREE.Mesh(new THREE.CircleGeometry(.3, 20), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })); bulb.rotation.x = Math.PI / 2; bulb.position.set(.3, 8.45, 1.2); scene.add(bulb);
+
+  // volumetric beam (soft additive cone)
+  var beamTex = canvasTex(64, 256, function (x, w, h) { var g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); var gx = x.createLinearGradient(0, 0, w, 0); gx.addColorStop(0, "rgba(0,0,0,1)"); gx.addColorStop(.5, "rgba(0,0,0,0)"); gx.addColorStop(1, "rgba(0,0,0,1)"); x.globalCompositeOperation = "destination-out"; x.fillStyle = gx; x.fillRect(0, 0, w, h); });
+  var beam = new THREE.Mesh(new THREE.CylinderGeometry(.25, 3.1, 8.4, 40, 1, true), new THREE.MeshBasicMaterial({ map: beamTex, color: 0x9fb4d8, transparent: true, opacity: .16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  beam.position.set(.2, 4.3, .9); scene.add(beam);
+
+  // dust in the beam
+  var N = 420, dp = new Float32Array(N * 3), r3 = rnd(9);
+  for (var d = 0; d < N; d++) { var a = r3() * Math.PI * 2, rr = Math.sqrt(r3()) * 2.4, y = r3() * 7.5; dp.set([Math.cos(a) * rr * (y / 7.5 * .3 + .7), y, Math.sin(a) * rr], d * 3); }
+  var dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.BufferAttribute(dp, 3));
+  var dustPts = new THREE.Points(dg, new THREE.PointsMaterial({ color: 0xcfd8e6, size: .025, transparent: true, opacity: .6, depthWrite: false })); scene.add(dustPts);
+
+
+  /* ---------- glossy finish on everything (clearcoat + lower roughness) ---------- */
+  (function glossify() {
+    var cache = new Map();
+    function conv(m) {
+      if (!m || !m.isMeshStandardMaterial || m.transparent) return m;
+      if (cache.has(m)) return cache.get(m);
+      var p = m.isMeshPhysicalMaterial ? m : new THREE.MeshPhysicalMaterial();
+      if (p !== m) { THREE.MeshStandardMaterial.prototype.copy.call(p, m); p.defines = { STANDARD: "", PHYSICAL: "" }; }
+      var matte = m.roughness >= .88;
+      p.roughness = matte ? Math.max(.35, m.roughness * .6) : Math.max(.05, m.roughness * .4);
+      p.clearcoat = matte ? .35 : 1; p.clearcoatRoughness = matte ? .3 : .06;
+      p.envMapIntensity = (m.envMapIntensity || 1) * 1.5;
+      p.needsUpdate = true; cache.set(m, p); return p;
+    }
+    scene.traverse(function (o) { if (!o.isMesh) return; o.material = Array.isArray(o.material) ? o.material.map(conv) : conv(o.material); });
+  })();
+
+  /* ---------- post: bloom + grain/vignette ---------- */
+  var composer = new THREE.EffectComposer(renderer);
+  composer.addPass(new THREE.RenderPass(scene, camera));
+  var bloom = new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), .55, .5, .82); composer.addPass(bloom);
+  var grade = new THREE.ShaderPass({
+    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 } },
+    vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+    fragmentShader: "uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv;" +
+      "float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)) + uTime) * 43758.5453); }" +
+      "void main(){ vec4 c = texture2D(tDiffuse, vUv); vec2 d = vUv - .5; float v = smoothstep(.85, .25, length(d)); c.rgb *= mix(.45, 1.0, v); c.rgb += (h(vUv * 800.0) - .5) * .035; c.rgb = mix(c.rgb, c.rgb * vec3(.92,.97,1.06), .5); gl_FragColor = c; }"
+  });
+  composer.addPass(grade);
+
+  /* ---------- controls ---------- */
+  var rotY = .55, vel = 0, drag = null, camT = 0;
+  canvas.addEventListener("pointerdown", function (e) { drag = { x: e.clientX, r: rotY }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointermove", function (e) { if (!drag) return; var n = drag.r + (e.clientX - drag.x) * .012; vel = n - rotY; rotY = n; });
+  canvas.addEventListener("pointerup", function () { drag = null; });
+  window.addEventListener("keydown", function (e) { if (e.key === "ArrowLeft") rotY -= .2; if (e.key === "ArrowRight") rotY += .2; });
+  document.getElementById("b-spin").addEventListener("click", function () { spin = !spin; this.setAttribute("aria-pressed", spin); });
+  document.getElementById("b-close").addEventListener("click", function () { close = !close; this.setAttribute("aria-pressed", close); });
+
+  var portrait = false;
+  function resize() {
+    var w = innerWidth, h = innerHeight; portrait = w < h;
+    var pr = Math.min(devicePixelRatio || 1, isPhone ? 1.5 : 2);
+    renderer.setPixelRatio(pr); renderer.setSize(w, h, false);
+    composer.setPixelRatio(pr); composer.setSize(w, h);
+    bloom.resolution.set(w / 2, h / 2);
+    camera.aspect = w / h; camera.fov = portrait ? 50 : 34; camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize); resize();
+
+  var clock = new THREE.Clock();
+  var far = new THREE.Vector3(), near = new THREE.Vector3();
+  function frame() {
+    var dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+    if (!drag) { if (spin) rotY += dt * .3; rotY += vel; vel *= .9; }
+    turn.rotation.y = rotY;
+    camT += ((close ? 1 : 0) - camT) * Math.min(1, dt * 3);
+    far.set(0, 2.6, portrait ? 8.6 : 7.4); near.set(.35, 2.15, portrait ? 3.6 : 3.1);
+    camera.position.lerpVectors(far, near, camT);
+    camera.lookAt(0, 1.45 + camT * .45, 0);
+    radioTick(reduce ? 0 : t);
+    if (!reduce) { dustPts.rotation.y = t * .02; dustPts.position.y = Math.sin(t * .3) * .05; }
+    grade.uniforms.uTime.value = t % 10;
+    composer.render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
