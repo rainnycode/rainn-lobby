@@ -17,7 +17,7 @@ Léelo completo antes de tocar nada.
 | EPK v1 de rainn (web + PDF) | `epk-v1/` · artifact https://claude.ai/artifact/HJs65WPbLgjxP7jQMosDNC |
 | Versión para Vercel en 1080colorado.com/rainn | `vercel/` (`vercel.json` + `public/`) |
 | Fotos/portadas usadas en el EPK | `assets/` |
-| **El escondite 3D (v3)** — la página principal del press kit v2 | `escondite/escondite.html` · `escondite/index.html` (para abrir en el navegador) · artifact https://claude.ai/artifact/1kLdGLDc1k4VEvzy62MjPp |
+| **El escondite 3D (v3)** — la página principal del press kit v2 | `escondite/escondite.html` · `escondite/index.html` (para abrir en el navegador) · artifact v3 https://claude.ai/artifact/1kLdGLDc1k4VEvzy62MjPp · **prueba con pulido (Claude Code)** https://claude.ai/artifact/M1452F4Kw1LXJdLWXcfYYh |
 | Versión anterior del escondite (formas simples) | `escondite/escondite.v1.bak.html` |
 | 9 modelos sueltos (vista previa de cada uno) | `escondite/modelos/*.html` (fragmento) y `escondite/modelos/ver/*.html` (para abrir) |
 | Código fuente de cada modelo | `escondite/parts/*.js` |
