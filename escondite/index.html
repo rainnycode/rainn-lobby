@@ -159,8 +159,8 @@ body.panel-open.touch .hud-bottom { display: none; }
 .note { font-family: var(--mono); font-size: 12px; color: var(--dim); letter-spacing: .04em; }
 
 @media (max-width: 700px), (pointer: coarse) {
-  .panel { top: 0; left: 0; width: 100%; height: 100%; border-left: 0; transform: translateY(100%); padding-top: env(safe-area-inset-top, 0px); background: var(--bg); }
-  .panel-head { border-bottom: 2px solid var(--red); }
+  .panel { top: auto; left: 0; width: 100%; height: 56%; border-left: 0; border-top: 2px solid var(--red); transform: translateY(100%); padding-top: 0; background: var(--panel); box-shadow: 0 -30px 60px rgba(0,0,0,.6); }
+  .panel-head { padding: 12px 20px; }
   .panel-body { padding-left: max(20px, env(safe-area-inset-left, 0px)); }
   .panel p { font-size: 17px; color: #c9ced6; }
   .panel.open { transform: none; }
@@ -386,6 +386,9 @@ body.panel-open.touch .hud-bottom { display: none; }
   var orbit = { theta: 0, target: 0, radius: isTouch ? 19 : 17, height: 9.5, center: gl ? new THREE.Vector3(0, 1.6, -1) : null };
   var camState = gl ? { pos: new THREE.Vector3(), look: new THREE.Vector3() } : {};
   var tween = null;
+  // Phone: shift the rendered frame so the zoomed object sits in the free space above the card/sheet.
+  var camShift = { cur: 0, target: 0 };
+  function narrowView() { return window.innerWidth <= 700 || isTouch; }
 
   function M(color, o) { o = o || {}; var p = Object.assign({ color: color, roughness: .62, metalness: .1 }, o); delete p.flatShading; delete p.shininess; delete p.specular; return new THREE.MeshStandardMaterial(p); }
   function box(w, h, d, m) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); }
@@ -1407,8 +1410,9 @@ body.panel-open.touch .hud-bottom { display: none; }
     look.y = o.base.y + v[2];
     var narrow = window.innerWidth <= 700 || isTouch;
     var right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
-    if (mode === "focus") { look.y -= narrow ? .7 : .35; }
-    else if (narrow) { look.y -= .2; } else { look.addScaledVector(right, -1.3); }
+    if (narrow) pos.addScaledVector(dir, v[0] * .24); // pull back a bit: only part of the screen is free
+    if (mode === "focus") { if (!narrow) look.y -= .35; }
+    else if (!narrow) { look.addScaledVector(right, -1.3); }
     return { pos: pos, look: look };
   }
 
@@ -1426,14 +1430,14 @@ body.panel-open.touch .hud-bottom { display: none; }
     document.getElementById("f-eb").textContent = s.obj;
     document.getElementById("f-name").textContent = s.name;
     document.getElementById("f-tz").textContent = TEASER[s.id] || "";
-    showCard(true);
+    showCard(true); camShift.target = narrowView() ? .14 : 0;
     if (!isTouch) setTimeout(function () { document.getElementById("f-enter").focus({ preventScroll: true }); }, 60);
     if (gl) { objects.forEach(function (o, k) { o.light.intensity = k === i ? LAMP * 1.4 : LAMP * .45; }); startTween(viewFor(i, "focus"), 1.0, null); }
     hideHint(); lastAction = performance.now();
   }
   function unfocus() {
     if (focusIdx < 0) return;
-    focusIdx = -1; activeIdx = -1; showCard(false);
+    focusIdx = -1; activeIdx = -1; showCard(false); camShift.target = 0;
     if (gl) { objects.forEach(function (o) { o.light.intensity = LAMP; }); startTween(orbitPose(orbit.theta, { pos: new THREE.Vector3(), look: new THREE.Vector3() }), 1.0, null); }
     lastAction = performance.now();
   }
@@ -1447,7 +1451,7 @@ body.panel-open.touch .hud-bottom { display: none; }
     panelEb.textContent = s.obj + " · " + s.name;
     panelBody.innerHTML = s.html;
     menu.querySelectorAll("button").forEach(function (b) { b.classList.toggle("hot", +b.dataset.i === i); });
-    document.body.classList.add("panel-open");
+    document.body.classList.add("panel-open"); camShift.target = narrowView() ? .28 : 0;
     panel.setAttribute("aria-hidden", "false");
     var reveal = function () { panel.classList.add("open"); panelBody.scrollTop = 0; if (!isTouch) setTimeout(function () { document.getElementById("back").focus({ preventScroll: true }); }, 50); };
     if (gl) { objects.forEach(function (o, k) { o.light.intensity = k === i ? LAMP * 1.4 : LAMP * .45; }); startTween(viewFor(i), 1.1, reveal); setTimeout(reveal, 450); } else reveal();
@@ -1456,7 +1460,7 @@ body.panel-open.touch .hud-bottom { display: none; }
   function closeSection() {
     if (activeIdx < 0) return;
     if (fromFocus) { var back = activeIdx; fromFocus = false; panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true"); document.body.classList.remove("panel-open"); menu.querySelectorAll("button").forEach(function (b) { b.classList.remove("hot"); }); focusSection(back); return; }
-    activeIdx = -1;
+    activeIdx = -1; camShift.target = 0;
     panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true");
     document.body.classList.remove("panel-open");
     menu.querySelectorAll("button").forEach(function (b) { b.classList.remove("hot"); });
@@ -1591,6 +1595,9 @@ body.panel-open.touch .hud-bottom { display: none; }
       if (tween.t >= 1) { var d = tween.done; tween = null; if (d) d(); }
     }
     camera.position.copy(camState.pos); camera.lookAt(camState.look);
+    camShift.cur += (camShift.target - camShift.cur) * Math.min(1, dt * 4.5);
+    if (Math.abs(camShift.cur) > .002) camera.setViewOffset(innerWidth, innerHeight, 0, camShift.cur * innerHeight, innerWidth, innerHeight);
+    else if (camera.view && camera.view.enabled) camera.clearViewOffset();
 
     if (activeIdx < 0 && !tween) {
       if (isTouch) setHover(pick((touchAim.x / innerWidth) * 2 - 1, -(touchAim.y / innerHeight) * 2 + 1));
