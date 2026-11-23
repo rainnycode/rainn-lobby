@@ -11,11 +11,11 @@ var q = new URLSearchParams(location.search), FIX = q.has("t") ? +q.get("t") : n
 var r = new THREE.WebGLRenderer({ canvas: document.getElementById("c"), antialias: true }); r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.shadowMap.enabled = true;
 var s = new THREE.Scene(); s.background = new THREE.Color(0x0b0d11);
 var cam = new THREE.PerspectiveCamera(32, 1, .05, 50);
-s.add(new THREE.HemisphereLight(0x8fa6c8, 0x111111, .6));
-var key = new THREE.SpotLight(0xe8eeff, 9, 14, .6, .5, 1.5); key.position.set(1.5, 5, 2.5); key.castShadow = true; key.shadow.bias = -.0005; key.shadow.normalBias = .02; key.shadow.mapSize.set(1024, 1024); s.add(key);
+s.add(new THREE.HemisphereLight(0x8fa6c8, 0x111111, .35));
+var key = new THREE.SpotLight(0xe8eeff, 6, 14, .6, .5, 1.5); key.position.set(1.5, 5, 2.5); key.castShadow = true; key.shadow.bias = -.0005; key.shadow.normalBias = .02; key.shadow.mapSize.set(1024, 1024); s.add(key);
 var floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color: 0x3a3e44, roughness: .9 })); floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; s.add(floor);
-var walk = make_galgo({ pose: "walk" }); walk.g.position.set(-.6, 0, 0); s.add(walk.g);
-var lie = make_galgo({ pose: "lie" }); lie.g.position.set(.75, 0, 0); lie.g.rotation.y = -.5; s.add(lie.g);
+var walk = make_galgo({ pose: "walk", color: 0x7f848c }); walk.g.position.set(-.6, 0, 0); s.add(walk.g);
+var lie = make_galgo({ pose: "lie", color: 0x7f848c }); lie.g.position.set(.75, 0, 0); lie.g.rotation.y = -.5; s.add(lie.g);
 function size() { r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(innerWidth, innerHeight, false); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); }
 size(); addEventListener("resize", size);
 var yaw = (+q.get("yaw") || 35) * Math.PI / 180, t0 = performance.now();
@@ -23,7 +23,8 @@ function frame() {
   var t = FIX !== null ? FIX : (performance.now() - t0) / 1000;
   if (FIX !== null) { walk.tick(t, true, FIX); } else walk.tick(t, true, 1 / 60);
   lie.tick(t, false);
-  cam.position.set(Math.sin(yaw) * 3.4, 1.3, Math.cos(yaw) * 3.4); cam.lookAt(0, .45, 0);
+  if (q.get("zoom")) { var hp = new THREE.Vector3(); walk.g.updateMatrixWorld(true); walk.g.getObjectByProperty("type","Group"); hp.set(-.6, .95, .42); cam.position.set(hp.x + Math.sin(yaw) * .75, hp.y + .08, hp.z + Math.cos(yaw) * .75); cam.lookAt(hp); }
+  else { cam.position.set(Math.sin(yaw) * 3.4, 1.3, Math.cos(yaw) * 3.4); cam.lookAt(0, .45, 0); }
   r.render(s, cam); window.done = 1; if (FIX === null) requestAnimationFrame(frame);
 }
 frame();
