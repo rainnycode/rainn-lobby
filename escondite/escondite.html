@@ -48,7 +48,11 @@ body.focus .hud-bottom, body.focus #hint { opacity: 0; pointer-events: none; }
 @keyframes lockIn { from { opacity: 0; translate: -6px 0; } }
 #lock-label .n { font-family: var(--display); font-weight: 700; font-size: 17px; }
 #lock-label .s { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
-body.touch #lock-label { transform: translate(-50%, 36px); align-items: center; }
+body.touch #mira, body.touch #lock-label { display: none; }
+body.touch #intro .demo { display: none; }
+.tap { position: fixed; z-index: 5; width: 44px; height: 44px; margin: -22px 0 0 -22px; border: 2px solid var(--red); border-radius: 50%; pointer-events: none; opacity: .9; transform: scale(.35); animation: tapRing 420ms var(--ease-out) forwards; }
+@keyframes tapRing { to { transform: scale(1.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tap { animation: tapFade 300ms ease forwards; transform: none; } @keyframes tapFade { to { opacity: 0; } } }
 #open-chip { display: none; margin-top: 8px; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .04em; color: #fff; background: var(--red); border: 0; padding: 10px 16px; min-height: 40px; cursor: pointer; transition: transform 140ms var(--ease-out); box-shadow: 0 6px 18px rgba(255,35,56,.35); }
 #open-chip:active { transform: scale(.96); }
 
@@ -1764,6 +1768,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   canvas.addEventListener("pointerup", function (e) {
     if (!drag) return;
     var wasDrag = drag.moved, dismiss = drag.dismiss; drag = null;
+    if (isTouch && !wasDrag) { var tp = document.createElement("div"); tp.className = "tap"; tp.style.left = e.clientX + "px"; tp.style.top = e.clientY + "px"; document.body.appendChild(tp); setTimeout(function () { tp.remove(); }, 500); }
     if (dismiss) { if (!wasDrag) unfocus(); return; }
     if (wasDrag || activeIdx >= 0) return;
     var i = pick((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -1853,8 +1858,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     else if (camera.view && camera.view.enabled) camera.clearViewOffset();
 
     if (activeIdx < 0 && !tween) {
-      if (isTouch) setHover(pick((touchAim.x / innerWidth) * 2 - 1, -(touchAim.y / innerHeight) * 2 + 1));
-      else if (haveMouse) setHover(pick((mouseClient.x / innerWidth) * 2 - 1, -(mouseClient.y / innerHeight) * 2 + 1));
+      if (!isTouch && haveMouse) setHover(pick((mouseClient.x / innerWidth) * 2 - 1, -(mouseClient.y / innerHeight) * 2 + 1));
     }
     if (!reduceMotion) {
       var p = rain.geometry.attributes.position.array;
@@ -1919,7 +1923,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
       requestAnimationFrame(frame);
     } else { bar.style.width = "100%"; introDone = true; }
     var seen = false; try { seen = localStorage.getItem("rainn-escondite-visto") === "1"; } catch (e) {}
-    if (isTouch) { document.getElementById("intro-sub").textContent = "Toca un objeto para ver qué es. Desliza para girar."; }
+    if (isTouch) { document.getElementById("intro-h").textContent = "Explora el escondite"; document.getElementById("intro-sub").textContent = "Toca un objeto para ver qué es. Desliza para girar."; }
     setTimeout(function () {
       document.getElementById("intro-t").hidden = true; document.querySelector("#intro .bar").hidden = true;
       if (seen) { finishIntro(); return; }
