@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>La paloma</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Homemade+Apple&family=Cormorant+Garamond:ital,wght@0,500;1,500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one screen of dusk sky; a dove crosses it; tapping it drops a letter that opens in the middle. Single look on purpose. */
+:root {
+  --sky-top: #0f1b33;
+  --sky-mid: #2a3557;
+  --sky-low: #b77a6a;
+  --dove: #f3f1ec;
+  --paper: #efe7d8;
+  --ink: #2a2330;
+  --seal: #8e1f2c;
+  --hint: #d9dde8;
+  --hand: "Homemade Apple", "Segoe Script", cursive;
+  --serif: "Cormorant Garamond", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; overflow: hidden; background: var(--sky-top); color: var(--hint); font-family: var(--serif); }
+#sky { position: fixed; inset: 0; background: linear-gradient(to bottom, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%); }
+#sky canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+#hint { position: fixed; left: 0; right: 0; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); text-align: center; font-family: var(--mono); font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--hint); opacity: .75; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); transition: opacity 300ms ease; }
+body.dropped #hint { opacity: 0; }
+
+#dove { position: fixed; left: 0; top: 0; width: 120px; height: 90px; margin: -45px 0 0 -60px; cursor: pointer; border: 0; padding: 0; background: none; -webkit-tap-highlight-color: transparent; will-change: transform; }
+#dove svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 6px 10px rgba(10,15,30,.35)); }
+#dove .wing { transform-box: fill-box; transform-origin: 85% 90%; animation: flap 520ms ease-in-out infinite alternate; }
+#dove .wing.back { animation-delay: -60ms; opacity: .82; }
+@keyframes flap { from { transform: rotate(-38deg); } to { transform: rotate(22deg) scaleY(.75); } }
+#dove:focus-visible { outline: 2px dashed var(--hint); outline-offset: 6px; border-radius: 50%; }
+#dove .letter-held { transition: opacity 120ms ease; }
+body.dropped #dove .letter-held { opacity: 0; }
+
+#env { position: fixed; left: 0; top: 0; width: 64px; height: 44px; margin: -22px 0 0 -32px; pointer-events: none; opacity: 0; will-change: transform; }
+#env svg { width: 100%; height: 100%; }
+
+#card { position: fixed; inset: 0; display: grid; place-items: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; }
+#card > div { width: min(460px, 100%); }
+.letter { width: 100%; box-sizing: border-box; background: var(--paper); color: var(--ink); padding: 34px 30px 28px; box-shadow: 0 30px 80px rgba(8,10,25,.55); position: relative; transform: translateY(30px) scale(.9) rotate(-1.5deg); opacity: 0; transition: transform 600ms var(--ease-out), opacity 300ms ease; background-image: repeating-linear-gradient(to bottom, transparent 0 33px, rgba(42,35,48,.08) 33px 34px); }
+#card.open { pointer-events: auto; }
+#card.open .letter { transform: none; opacity: 1; }
+.letter .to { font-family: var(--serif); font-style: italic; font-size: 20px; margin: 0 0 14px; }
+.letter .body { font-family: var(--hand); font-size: 17px; line-height: 2; margin: 0; white-space: pre-wrap; }
+.letter .from { font-family: var(--hand); font-size: 17px; text-align: right; margin: 18px 0 0; }
+.letter .seal { position: absolute; top: -16px; right: 26px; width: 38px; height: 38px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #b23444, var(--seal) 70%); box-shadow: 0 3px 8px rgba(0,0,0,.3); display: grid; place-items: center; font-family: var(--serif); font-style: italic; color: #f4dcd6; font-size: 18px; }
+.again { margin-top: 18px; display: block; margin-left: auto; margin-right: auto; font-family: var(--mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--hint); background: none; border: 1px solid rgba(217,221,232,.35); padding: 12px 18px; min-height: 44px; cursor: pointer; opacity: 0; transition: opacity 300ms ease 500ms, transform 140ms var(--ease-out); }
+#card.open .again { opacity: 1; }
+.again:active { transform: scale(.97); }
+.again:focus-visible { outline: 2px solid var(--hint); outline-offset: 3px; }
+@media (max-width: 420px) { .letter { padding: 30px 22px 24px; } .letter .body { font-size: 15.5px; } }
+@media (prefers-reduced-motion: reduce) { #dove .wing { animation: none; } .letter { transition: opacity 300ms ease; transform: none; } }
+</style>
+
+<div id="sky"><canvas id="stars" aria-hidden="true"></canvas></div>
+<p id="hint">Toca la paloma</p>
+
+<button id="dove" type="button" aria-label="Paloma con una carta. Tócala para que la suelte.">
+  <svg viewBox="0 0 120 90" aria-hidden="true">
+    <path class="wing back" d="M58 44 C 52 22, 38 8, 18 4 C 30 16, 36 28, 46 44 Z" fill="#d9d6cf"/>
+    <path d="M22 50 C 30 40, 52 36, 72 40 C 84 42, 92 40, 98 36 C 102 34, 108 36, 106 40 C 104 44, 98 46, 94 48 C 86 56, 66 60, 48 58 L 26 66 L 30 56 Z" fill="var(--dove)"/>
+    <circle cx="100" cy="38" r="1.6" fill="#2a2330"/>
+    <path d="M106 39 L 113 40.5 L 106 42 Z" fill="#c9a17a"/>
+    <g class="letter-held"><rect x="62" y="54" width="18" height="12" rx="1" fill="var(--paper)" stroke="#c9bda8" stroke-width=".8"/><path d="M62 54 L 71 61 L 80 54" fill="none" stroke="#c9bda8" stroke-width=".8"/><circle cx="71" cy="61" r="2" fill="var(--seal)"/></g>
+    <path class="wing" d="M60 44 C 56 18, 44 2, 22 -4 C 34 12, 40 26, 48 44 Z" fill="var(--dove)"/>
+  </svg>
+</button>
+
+<div id="env" aria-hidden="true"><svg viewBox="0 0 64 44"><rect x="1" y="1" width="62" height="42" rx="2" fill="#efe7d8" stroke="#c9bda8" stroke-width="1.2"/><path d="M1 1 L 32 25 L 63 1" fill="none" stroke="#c9bda8" stroke-width="1.2"/><circle cx="32" cy="25" r="5" fill="#8e1f2c"/></svg></div>
+
+<div id="card" aria-live="polite">
+  <div>
+    <article class="letter" id="letter" hidden>
+      <span class="seal" aria-hidden="true">r</span>
+      <p class="to" id="l-to"></p>
+      <p class="body" id="l-body"></p>
+      <p class="from" id="l-from"></p>
+    </article>
+    <button class="again" id="again" type="button" hidden>Cerrar la carta</button>
+  </div>
+</div>
+
+<script>
+/* ---------- the letter (edit these three lines) ---------- */
+var CARTA = {
+  para: "Para ti,",
+  texto: "Esta paloma viajó toda la noche, bajo la lluvia, solo para dejarte esto.\nQue sepas que pienso en ti más de lo que digo.",
+  de: "— rainn"
+};
+
+(function () {
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.getElementById("l-to").textContent = CARTA.para;
+  document.getElementById("l-body").textContent = CARTA.texto;
+  document.getElementById("l-from").textContent = CARTA.de;
+
+  // stars
+  var cv = document.getElementById("stars"), cx = cv.getContext("2d"), stars = [];
+  function sizeStars() {
+    var d = Math.min(devicePixelRatio || 1, 2); cv.width = innerWidth * d; cv.height = innerHeight * d; cx.setTransform(d, 0, 0, d, 0, 0);
+    stars = []; for (var i = 0; i < Math.round(innerWidth * innerHeight / 5000); i++) stars.push({ x: Math.random() * innerWidth, y: Math.random() * innerHeight * .6, r: Math.random() * 1.2 + .2, p: Math.random() * 6 });
+  }
+  sizeStars(); addEventListener("resize", sizeStars);
+
+  var dove = document.getElementById("dove"), env = document.getElementById("env"), card = document.getElementById("card");
+  var letter = document.getElementById("letter"), again = document.getElementById("again");
+  var t0 = performance.now(), dropped = false, fall = null, pos = { x: 0, y: 0 };
+
+  function dovePos(t) {
+    var w = innerWidth, span = w + 240, speed = Math.max(70, w / 9);
+    var x = ((t * speed) % span) - 120;
+    var y = innerHeight * .32 + Math.sin(t * 1.3) * 26 + Math.sin(t * .37) * 30;
+    return { x: x, y: y, tilt: Math.cos(t * 1.3) * 6 };
+  }
+
+  function frame(now) {
+    var t = (now - t0) / 1000;
+    cx.clearRect(0, 0, innerWidth, innerHeight);
+    stars.forEach(function (s) { cx.globalAlpha = .35 + .35 * Math.sin(t * 1.5 + s.p); cx.fillStyle = "#dfe6ff"; cx.beginPath(); cx.arc(s.x, s.y, s.r, 0, 6.283); cx.fill(); });
+    cx.globalAlpha = 1;
+    if (!reduce) pos = dovePos(t); else if (!pos.x) pos = { x: innerWidth * .5, y: innerHeight * .3, tilt: 0 };
+    dove.style.transform = "translate(" + pos.x + "px," + pos.y + "px) rotate(" + (pos.tilt || 0) + "deg)";
+    if (fall) {
+      var k = Math.min(1, (now - fall.start) / 1500), e = 1 - Math.pow(1 - k, 2);
+      var tx = innerWidth / 2, ty = innerHeight * .6;
+      var x = fall.x + (tx - fall.x) * e + Math.sin(k * 9) * 30 * (1 - k), y = fall.y + (ty - fall.y) * (k * k);
+      env.style.opacity = k < .95 ? 1 : (1 - (k - .95) * 20);
+      env.style.transform = "translate(" + x + "px," + y + "px) rotate(" + (Math.sin(k * 9) * 25 * (1 - k)) + "deg) scale(" + (1 + k * .6) + ")";
+      if (k >= 1) { fall = null; openLetter(); }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function drop() {
+    if (dropped) return;
+    dropped = true; document.body.classList.add("dropped");
+    if (reduce) { openLetter(); return; }
+    fall = { x: pos.x + 10, y: pos.y + 16, start: performance.now() };
+  }
+  function openLetter() {
+    letter.hidden = false; again.hidden = false;
+    requestAnimationFrame(function () { card.classList.add("open"); });
+  }
+  dove.addEventListener("click", drop);
+  again.addEventListener("click", function () {
+    card.classList.remove("open"); dropped = false; document.body.classList.remove("dropped");
+    setTimeout(function () { letter.hidden = true; again.hidden = true; }, 400);
+  });
+})();
+</script>
+
+</body>
+</html>
