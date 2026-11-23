@@ -284,6 +284,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
 <script src="vendor/ShaderPass.js"></script>
 <script src="vendor/UnrealBloomPass.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
+<script src="parts/galgo.js"></script>
 <script>
 (function () {
   "use strict";
@@ -1580,6 +1581,33 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     }
     if (life.bulbs) { var k = .85 + .15 * Math.sin(t * 7.3) * Math.sin(t * 2.1); life.bulbs[7].material.color.setRGB(1, .76 * k, .48 * k); }
   }
+  /* ---------- two grey greyhounds: one lying next to rainn, one wandering around ---------- */
+  var dogs = null;
+  function buildDogs() {
+    if (typeof make_galgo !== "function") return;
+    var S = 1.5, coat = 0x7f848c;
+    // lying one: beside rainn, a little apart, facing the same way he does
+    var lie = make_galgo({ pose: "lie", color: coat }); lie.g.scale.setScalar(S);
+    lie.g.position.set(RAINN_AT.x + .88 * 2.3 + RAINN_DIR.x * .9, 0, RAINN_AT.z - .48 * 2.3 + RAINN_DIR.z * .9); lie.g.rotation.y = -Math.PI / 2 - .15; scene.add(lie.g);
+    // walking one: a slow loop around the room, stopping now and then to sniff
+    var walk = make_galgo({ pose: "walk", color: coat }); walk.g.scale.setScalar(S); scene.add(walk.g);
+    var path = new THREE.CatmullRomCurve3([[-6, 1.5], [-3, 4.6], [1.5, 5.6], [6, 2.6], [6.6, -2], [3, -5.6], [.4, -6.6], [-3.4, -7], [-5.2, -6.5], [-6.3, -2.6]].map(function (p) { return new THREE.Vector3(p[0], 0, p[1]); }), true, "catmullrom", .5);
+    var len = path.getLength();
+    if (isTouch) [lie, walk].forEach(function (d) { d.g.traverse(function (o) { if (o.isMesh) o.castShadow = false; }); });
+    dogs = { lie: lie, walk: walk, path: path, len: len, u: .15, last: 0, stopUntil: 0, nextStop: 9, yaw: 0 };
+    ticks.push(tickDogs);
+  }
+  function tickDogs(t) {
+    var d = dogs, dt = Math.min(.05, t - d.last || 0); d.last = t;
+    var moving = t > d.stopUntil;
+    if (moving && t > d.nextStop) { d.stopUntil = t + 2.5 + Math.random() * 2; d.nextStop = d.stopUntil + 9 + Math.random() * 8; moving = false; }
+    if (moving) d.u = (d.u + dt * .55 / d.len) % 1;
+    var p = d.path.getPointAt(d.u), ahead = d.path.getPointAt((d.u + .004) % 1);
+    var want = Math.atan2(ahead.x - p.x, ahead.z - p.z), diff = Math.atan2(Math.sin(want - d.yaw), Math.cos(want - d.yaw));
+    d.yaw += diff * Math.min(1, dt * 4);
+    d.walk.g.position.set(p.x, 0, p.z); d.walk.g.rotation.y = d.yaw;
+    d.walk.tick(t, moving, dt); d.lie.tick(t, false, dt);
+  }
   var winDark = new THREE.Color(0x0d1626), winLit = new THREE.Color(0xe6efff);
   function tickLife(t) {
     var dt = 1 / 60;
@@ -2021,7 +2049,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
       scene.add(new THREE.HemisphereLight(0x5a6c88, 0x050505, .22));
       bar.style.width = "30%";
       buildRoom(); bar.style.width = "60%";
-      buildObjects(); buildAtmos(); buildLife(); buildHome(); glossify(); bar.style.width = "100%";
+      buildObjects(); buildAtmos(); buildLife(); buildHome(); buildDogs(); glossify(); bar.style.width = "100%";
       if (isTouch) scene.traverse(function (o) { if (o.isPointLight) o.visible = false; });
       composer = new THREE.EffectComposer(renderer); composer.addPass(new THREE.RenderPass(scene, camera));
       bloom = new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), .55, .5, .82); composer.addPass(bloom);
