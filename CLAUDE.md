@@ -80,6 +80,16 @@ Intentos en Higgsfield (todo en su cuenta):
 - Animación: por código (respiración + balanceo leve + cabeza), NO rig — no hay animación de orar en la librería y el auto-rig falla sentado.
 - Para meter un GLB en el escondite: cargarlo con `GLTFLoader` (r128 examples) y aplicarle `glossify()` + la luz de su charco.
 
+
+## Avances 23 nov (Claude Code)
+- Repo: **github.com/rainnycode/rainn-lobby** (público). Link de prueba del escondite: https://claude.ai/artifact/M1452F4Kw1LXJdLWXcfYYh
+- Celular: sin mira (toque directo + onda roja); tarjeta previa (Volver/Entrar) → sección en media hoja con el objeto visible arriba. PC: mira + tarjeta + panel lateral.
+- rainn: lluvia de una gotera cae encima; al tocarlo caja estilo RPG "Shhhh… rainn está orando." → Escuchar oración (9 oraciones al azar, sin repetir) / Dejarlo tranquilo.
+- Vida: neblina baja, lámpara colgante que falla, ventanas altas + relámpagos cada 10–22 s.
+- Sonido (Web Audio, sin archivos): lluvia + truenos (master 40%), efectos sutiles (hover/select/open/back/blips de texto), botón Sonido/Silencio. Arcade: baja la lluvia y suena `escondite/audio/arcade.mp3` ("crystals", type beat free — revisar crédito al productor).
+- Aparte (no es del press kit): **la paloma** `paloma/` (carta "Hola negra…"), artifact https://claude.ai/artifact/XqPfqMcLyq2H5G2UjdCbgM y GitHub Pages https://rainnycode.github.io/rainn-lobby/paloma/ (Pages activado por Rubén; NO poner custom domain).
+- `.nojekyll` en la raíz para Pages.
+
 ## Pendientes
 1. Modelo de rainn orando (arriba). Luego repisa de figuras (4 personajes) y maniquí 1080 — ~34–38 créditos c/u, avisar costo.
 2. Contenido real de cada sección: links de canciones, videos (shows, singles, detrás de cámaras), screenshots de métricas, imágenes del moodboard, small team (nombres/roles), fecha de *Nepo*, avance de cada proyecto, info de personajes.
