@@ -1481,7 +1481,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
 
   /* ---------- sound: rain + far thunder, made with Web Audio (no files) ---------- */
-  var audio = { ctx: null, master: null, on: true, started: false };
+  var audio = { ctx: null, master: null, on: true, started: false, vol: .4 };
   try { audio.on = localStorage.getItem("rainn-sonido") !== "off"; } catch (e) {}
   function noiseBuffer(ctx, secs, brown) {
     var n = ctx.sampleRate * secs, b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0), last = 0;
@@ -1493,7 +1493,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     audio.started = true; var ctx = audio.ctx = new AC();
     audio.master = ctx.createGain(); audio.master.gain.value = 0; audio.master.connect(ctx.destination);
-    audio.master.gain.linearRampToValueAtTime(1, ctx.currentTime + 2.5);
+    audio.master.gain.linearRampToValueAtTime(audio.vol, ctx.currentTime + 2.5);
     var hiss = ctx.createBufferSource(); hiss.buffer = noiseBuffer(ctx, 3); hiss.loop = true;
     var hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 500;
     var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200;
@@ -1512,7 +1512,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   function setSound(on) {
     audio.on = on; try { localStorage.setItem("rainn-sonido", on ? "on" : "off"); } catch (e) {}
     var b = document.getElementById("snd"); b.setAttribute("aria-pressed", on ? "true" : "false"); b.querySelector("span").textContent = on ? "Sonido" : "Silencio";
-    if (on) { if (!audio.started) startAudio(); else if (audio.ctx) { audio.ctx.resume(); audio.master.gain.linearRampToValueAtTime(1, audio.ctx.currentTime + .4); } }
+    if (on) { if (!audio.started) startAudio(); else if (audio.ctx) { audio.ctx.resume(); audio.master.gain.linearRampToValueAtTime(audio.vol, audio.ctx.currentTime + .4); } }
     else if (audio.ctx) audio.master.gain.linearRampToValueAtTime(0, audio.ctx.currentTime + .3);
   }
   // browsers only allow sound after a tap/click/key
