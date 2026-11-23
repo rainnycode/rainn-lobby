@@ -1497,10 +1497,29 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     var hiss = ctx.createBufferSource(); hiss.buffer = noiseBuffer(ctx, 3); hiss.loop = true;
     var hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 500;
     var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200;
-    var g1 = ctx.createGain(); g1.gain.value = .07; hiss.connect(hp); hp.connect(lp); lp.connect(g1); g1.connect(audio.master); hiss.start();
+    audio.rain = ctx.createGain(); audio.rain.gain.value = 1; audio.rain.connect(audio.master);
+    var g1 = ctx.createGain(); g1.gain.value = .07; hiss.connect(hp); hp.connect(lp); lp.connect(g1); g1.connect(audio.rain); hiss.start();
     var body = ctx.createBufferSource(); body.buffer = noiseBuffer(ctx, 4, true); body.loop = true;
     var lp2 = ctx.createBiquadFilter(); lp2.type = "lowpass"; lp2.frequency.value = 700;
-    var g2 = ctx.createGain(); g2.gain.value = .22; body.connect(lp2); lp2.connect(g2); g2.connect(audio.master); body.start();
+    var g2 = ctx.createGain(); g2.gain.value = .22; body.connect(lp2); lp2.connect(g2); g2.connect(audio.rain); body.start();
+    updateMusic();
+  }
+  // Music per section: the arcade plays its song and the rain steps back.
+  var MUSIC = { juego: "audio/arcade.mp3" }, music = { el: null, id: null, gain: null };
+  function updateMusic() {
+    var id = activeIdx >= 0 && activeIdx !== RAINN && SECTIONS[activeIdx] ? SECTIONS[activeIdx].id : null;
+    var want = id && MUSIC[id] ? id : null;
+    if (!audio.ctx || want === music.id) return;
+    var ctx = audio.ctx, t = ctx.currentTime;
+    if (music.el) { var old = music; old.gain.gain.cancelScheduledValues(t); old.gain.gain.setValueAtTime(old.gain.gain.value, t); old.gain.gain.linearRampToValueAtTime(0, t + .8); setTimeout(function () { old.el.pause(); }, 900); }
+    music = { el: null, id: want, gain: null };
+    if (audio.rain) { audio.rain.gain.cancelScheduledValues(t); audio.rain.gain.setValueAtTime(audio.rain.gain.value, t); audio.rain.gain.linearRampToValueAtTime(want ? .12 : 1, t + (want ? .6 : 1.4)); }
+    if (!want) return;
+    var el = new Audio(MUSIC[want]); el.loop = true;
+    var src = ctx.createMediaElementSource(el), g = ctx.createGain(); g.gain.value = 0; src.connect(g); g.connect(audio.master);
+    g.gain.linearRampToValueAtTime(1.6, t + 1.2);
+    music.el = el; music.gain = g;
+    el.play().catch(function () { /* sin archivo todavía: solo se baja la lluvia */ });
   }
   function thunder(delay) {
     if (!audio.ctx || !audio.on) return;
@@ -1514,7 +1533,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   function sfx(kind) {
     if (!audio.ctx || !audio.on) return;
     var now = performance.now(); if (now - (sfxLast[kind] || 0) < (kind === "blip" ? 40 : 70)) return; sfxLast[kind] = now;
-    var ctx = audio.ctx, t = ctx.currentTime, g = ctx.createGain(); g.connect(audio.master);
+    var ctx = audio.ctx, t = ctx.currentTime, g = ctx.createGain(); g.gain.value = 1.6; g.connect(audio.master);
     function tone(type, f0, f1, dur, vol) {
       var o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
       var e = ctx.createGain(); e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(vol, t + .004); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
@@ -1591,7 +1610,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   // Step 1: tap an object -> camera moves to it, small card says what's inside.
   function focusSection(i) {
     var s = SECTIONS[i];
-    activeIdx = i; focusIdx = i; hideLock(); sfx("select");
+    activeIdx = i; focusIdx = i; hideLock(); sfx("select"); updateMusic();
     document.getElementById("f-eb").textContent = s.obj;
     document.getElementById("f-name").textContent = s.name;
     document.getElementById("f-tz").textContent = TEASER[s.id] || "";
@@ -1602,7 +1621,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   function unfocus() {
     if (focusIdx < 0) return;
-    focusIdx = -1; activeIdx = -1; showCard(false); camShift.target = 0; sfx("back");
+    focusIdx = -1; activeIdx = -1; showCard(false); camShift.target = 0; sfx("back"); updateMusic();
     if (gl) { objects.forEach(function (o) { o.light.intensity = LAMP; }); startTween(orbitPose(orbit.theta, { pos: new THREE.Vector3(), look: new THREE.Vector3() }), 1.0, null); }
     lastAction = performance.now();
   }
@@ -1678,7 +1697,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   // Step 2: the full section.
   function openSection(i) {
     var s = SECTIONS[i];
-    activeIdx = i; hideLock(); sfx("open");
+    activeIdx = i; hideLock(); sfx("open"); updateMusic();
     panelEb.textContent = s.obj + " · " + s.name;
     panelBody.innerHTML = s.html;
     menu.querySelectorAll("button").forEach(function (b) { b.classList.toggle("hot", +b.dataset.i === i); });
@@ -1692,7 +1711,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     if (activeIdx < 0) return;
     sfx("back");
     if (fromFocus) { var back = activeIdx; fromFocus = false; panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true"); document.body.classList.remove("panel-open"); menu.querySelectorAll("button").forEach(function (b) { b.classList.remove("hot"); }); focusSection(back); return; }
-    activeIdx = -1; camShift.target = 0;
+    activeIdx = -1; camShift.target = 0; updateMusic();
     panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true");
     document.body.classList.remove("panel-open");
     menu.querySelectorAll("button").forEach(function (b) { b.classList.remove("hot"); });
