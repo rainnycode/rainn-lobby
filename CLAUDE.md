@@ -87,7 +87,7 @@ Intentos en Higgsfield (todo en su cuenta):
 - rainn: lluvia de una gotera cae encima; al tocarlo caja estilo RPG "Shhhh… rainn está orando." → Escuchar oración (9 oraciones al azar, sin repetir) / Dejarlo tranquilo.
 - Vida: neblina baja, lámpara colgante que falla, ventanas altas + relámpagos cada 10–22 s.
 - Sonido (Web Audio, sin archivos): lluvia + truenos (master 40%), efectos sutiles (hover/select/open/back/blips de texto), botón Sonido/Silencio. Arcade: baja la lluvia y suena `escondite/audio/arcade.mp3` ("crystals", type beat free — revisar crédito al productor).
-- Aparte (no es del press kit): **la paloma** `paloma/` (carta "Hola negra…"), artifact https://claude.ai/artifact/XqPfqMcLyq2H5G2UjdCbgM y GitHub Pages https://rainnycode.github.io/rainn-lobby/paloma/ (Pages activado por Rubén; NO poner custom domain).
+- La paloma (página aparte) fue eliminada el 23 nov a pedido de Rubén. GitHub Pages sigue activo en el repo.
 - `.nojekyll` en la raíz para Pages.
 
 ## Pendientes
