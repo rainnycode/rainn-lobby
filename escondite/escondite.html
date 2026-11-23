@@ -57,6 +57,14 @@ body.touch #lock-label { transform: translate(-50%, 36px); align-items: center; 
 .brand { display: flex; flex-direction: column; gap: 2px; pointer-events: auto; }
 .brand b { font-family: var(--display); font-weight: 800; font-size: 30px; letter-spacing: -.03em; line-height: 1; }
 .brand span { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+#snd { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--glass); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.08); padding: 7px 10px; min-height: 32px; cursor: pointer; transition: transform 140ms var(--ease-out), color 150ms ease; }
+#snd:active { transform: scale(.96); }
+#snd i { width: 14px; height: 10px; display: flex; align-items: flex-end; gap: 2px; }
+#snd i::before, #snd i::after { content: ""; width: 3px; background: var(--red); animation: eq 900ms ease-in-out infinite alternate; }
+#snd i::before { height: 60%; } #snd i::after { height: 100%; animation-delay: -450ms; }
+#snd[aria-pressed="false"] i::before, #snd[aria-pressed="false"] i::after { animation: none; height: 2px; background: var(--dim); }
+@keyframes eq { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { #snd i::before, #snd i::after { animation: none; } }
 .map-wrap { pointer-events: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 #minimap { width: 144px; height: 120px; background: var(--glass); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.08); display: block; }
 .map-wrap span { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; color: var(--dim); text-transform: uppercase; }
@@ -229,7 +237,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
 <div id="lock-label" hidden><span class="n"></span><span class="s"></span><button id="open-chip" type="button">Toca para abrir</button></div>
 
 <div class="hud-top">
-  <div class="brand"><b>rainn</b><span>El escondite · 1080</span></div>
+  <div class="brand"><b>rainn</b><span>El escondite · 1080</span><button id="snd" type="button" aria-pressed="true"><i aria-hidden="true"></i><span>Sonido</span></button></div>
   <div class="map-wrap"><canvas id="minimap" width="288" height="240" aria-label="Mini-mapa del escondite"></canvas><span>Mapa</span></div>
 </div>
 
@@ -1423,6 +1431,94 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     });
   }
 
+  /* ---------- life: ground mist, a failing work lamp, lightning through high windows ---------- */
+  var life = { mist: [], lamp: null, bulb: null, flick: 0, nextFlick: 3, wins: [], flash: null, nextBolt: 6, bolt: -1 };
+  function buildLife() {
+    // ground mist: a few huge soft layers drifting at different speeds
+    var mt = canvasTex(512, 512, function (x, w, h) {
+      x.fillStyle = "#000"; x.fillRect(0, 0, w, h); var r = rnd(23);
+      for (var i = 0; i < 70; i++) { var cx = r() * w, cy = r() * h, rad = 40 + r() * 120, g = x.createRadialGradient(cx, cy, 0, cx, cy, rad); g.addColorStop(0, "rgba(255,255,255," + (.10 + r() * .18) + ")"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g;
+        for (var ox = -w; ox <= w; ox += w) for (var oy = -h; oy <= h; oy += h) x.fillRect(cx - rad + ox, cy - rad + oy, rad * 2, rad * 2); }
+    }, { color: false });
+    mt.wrapS = mt.wrapT = THREE.RepeatWrapping;
+    (isTouch ? [[.25, 1.6, .004]] : [[.18, 1.4, .004], [.5, 2.1, -.003], [.9, 2.8, .002]]).forEach(function (l, k) {
+      var tex = mt.clone(); tex.needsUpdate = true; tex.repeat.set(l[1], l[1] * .85);
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(50, 42), new THREE.MeshBasicMaterial({ color: 0x6d7f99, alphaMap: tex, transparent: true, opacity: k === 0 ? .28 : .16, depthWrite: false, fog: true }));
+      m.rotation.x = -Math.PI / 2; m.position.y = l[0]; m.userData.speed = l[2]; m.renderOrder = 2; scene.add(m); life.mist.push(m);
+    });
+    // a work lamp hanging from a cable that is about to die
+    var lx = 7.5, lz = -5.5, ly = 6.2;
+    scene.add(at(box(.02, 11.5 - ly, .02, new THREE.MeshBasicMaterial({ color: 0x111111 })), lx, (11.5 + ly) / 2, lz));
+    var cage = new THREE.Mesh(new THREE.CylinderGeometry(.18, .26, .34, 12, 1, true), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: .8, roughness: .4, wireframe: true }));
+    cage.position.set(lx, ly - .15, lz); scene.add(cage);
+    life.bulb = new THREE.Mesh(new THREE.SphereGeometry(.1, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff1d6 }));
+    life.bulb.position.set(lx, ly - .2, lz); scene.add(life.bulb);
+    life.lamp = new THREE.SpotLight(0xffe7c4, 9, 14, .62, .5, 1.3); life.lamp.position.set(lx, ly - .25, lz); life.lamp.target.position.set(lx, 0, lz); scene.add(life.lamp); scene.add(life.lamp.target);
+    // high windows on the back wall: dark blue at night, white when lightning hits
+    for (var wi = -2; wi <= 2; wi++) {
+      var win = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.8), new THREE.MeshBasicMaterial({ color: 0x0d1626 }));
+      win.position.set(wi * 7.5, 8.6, -21.66); scene.add(win); life.wins.push(win);
+      var bar = new THREE.MeshBasicMaterial({ color: 0x050608 });
+      scene.add(at(box(.08, 2.8, .05, bar), wi * 7.5, 8.6, -21.62)); scene.add(at(box(2.4, .08, .05, bar), wi * 7.5, 8.6, -21.62));
+    }
+    life.flash = new THREE.DirectionalLight(0xcfe0ff, 0); life.flash.position.set(0, 12, -20); scene.add(life.flash);
+    ticks.push(tickLife);
+  }
+  var winDark = new THREE.Color(0x0d1626), winLit = new THREE.Color(0xe6efff);
+  function tickLife(t) {
+    var dt = 1 / 60;
+    life.mist.forEach(function (m) { m.material.alphaMap.offset.x = t * m.userData.speed; m.material.alphaMap.offset.y = t * m.userData.speed * .6; });
+    // lamp: steady, then every few seconds a short fit of flickering
+    var on = 1;
+    if (t > life.nextFlick) { var k = t - life.nextFlick; if (k < .9) on = Math.sin(k * 60) * Math.sin(k * 23) > -.1 ? (k % .23 < .07 ? .15 : 1) : .05; else life.nextFlick = t + 4 + Math.random() * 6; }
+    life.lamp.intensity = 9 * on; life.bulb.material.color.setScalar(.15 + .85 * on).multiply(new THREE.Color(0xfff1d6));
+    // lightning: a double flash every 10-22 s, thunder follows
+    var f = 0;
+    if (t > life.nextBolt) { life.bolt = t; life.nextBolt = t + 10 + Math.random() * 12; thunder(1.2 + Math.random() * 1.4); }
+    if (life.bolt >= 0) { var b = t - life.bolt; f = b < .08 ? 1 : b < .16 ? .1 : b < .55 ? Math.max(0, .85 - (b - .16) * 2.2) : 0; if (b > .6) life.bolt = -1; }
+    life.flash.intensity = f * 2.4;
+    life.wins.forEach(function (w) { w.material.color.copy(winDark).lerp(winLit, f); });
+  }
+
+  /* ---------- sound: rain + far thunder, made with Web Audio (no files) ---------- */
+  var audio = { ctx: null, master: null, on: true, started: false };
+  try { audio.on = localStorage.getItem("rainn-sonido") !== "off"; } catch (e) {}
+  function noiseBuffer(ctx, secs, brown) {
+    var n = ctx.sampleRate * secs, b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0), last = 0;
+    for (var i = 0; i < n; i++) { var w = Math.random() * 2 - 1; if (brown) { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w; }
+    return b;
+  }
+  function startAudio() {
+    if (audio.started || !audio.on) return;
+    var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    audio.started = true; var ctx = audio.ctx = new AC();
+    audio.master = ctx.createGain(); audio.master.gain.value = 0; audio.master.connect(ctx.destination);
+    audio.master.gain.linearRampToValueAtTime(1, ctx.currentTime + 2.5);
+    var hiss = ctx.createBufferSource(); hiss.buffer = noiseBuffer(ctx, 3); hiss.loop = true;
+    var hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 500;
+    var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200;
+    var g1 = ctx.createGain(); g1.gain.value = .07; hiss.connect(hp); hp.connect(lp); lp.connect(g1); g1.connect(audio.master); hiss.start();
+    var body = ctx.createBufferSource(); body.buffer = noiseBuffer(ctx, 4, true); body.loop = true;
+    var lp2 = ctx.createBiquadFilter(); lp2.type = "lowpass"; lp2.frequency.value = 700;
+    var g2 = ctx.createGain(); g2.gain.value = .22; body.connect(lp2); lp2.connect(g2); g2.connect(audio.master); body.start();
+  }
+  function thunder(delay) {
+    if (!audio.ctx || !audio.on) return;
+    var ctx = audio.ctx, t0 = ctx.currentTime + delay, src = ctx.createBufferSource(); src.buffer = noiseBuffer(ctx, 4, true);
+    var lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.setValueAtTime(260, t0); lp.frequency.exponentialRampToValueAtTime(70, t0 + 3.5);
+    var g = ctx.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.55 + Math.random() * .3, t0 + .12); g.gain.exponentialRampToValueAtTime(.001, t0 + 3.8);
+    src.connect(lp); lp.connect(g); g.connect(audio.master); src.start(t0); src.stop(t0 + 4);
+  }
+  function setSound(on) {
+    audio.on = on; try { localStorage.setItem("rainn-sonido", on ? "on" : "off"); } catch (e) {}
+    var b = document.getElementById("snd"); b.setAttribute("aria-pressed", on ? "true" : "false"); b.querySelector("span").textContent = on ? "Sonido" : "Silencio";
+    if (on) { if (!audio.started) startAudio(); else if (audio.ctx) { audio.ctx.resume(); audio.master.gain.linearRampToValueAtTime(1, audio.ctx.currentTime + .4); } }
+    else if (audio.ctx) audio.master.gain.linearRampToValueAtTime(0, audio.ctx.currentTime + .3);
+  }
+  // browsers only allow sound after a tap/click/key
+  ["pointerdown", "keydown"].forEach(function (ev) { window.addEventListener(ev, function () { if (audio.on && !audio.started) startAudio(); }, { once: false, passive: true }); });
+  document.addEventListener("visibilitychange", function () { if (!audio.ctx) return; if (document.hidden) audio.ctx.suspend(); else if (audio.on) audio.ctx.resume(); });
+
   function buildAtmos() {
     // rain from a crack in the roof, falling right on rainn
     var n = 170, pos = new Float32Array(n * 6);
@@ -1489,6 +1585,8 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   document.getElementById("f-enter").addEventListener("click", function () { var i = focusIdx; fromFocus = true; focusIdx = -1; showCard(false); openSection(i); });
   document.getElementById("f-back").addEventListener("click", unfocus);
+  document.getElementById("snd").addEventListener("click", function () { setSound(!audio.on); });
+  if (!audio.on) { var sb = document.getElementById("snd"); sb.setAttribute("aria-pressed", "false"); sb.querySelector("span").textContent = "Silencio"; }
 
   /* ---------- rainn: text box (old RPG style) ---------- */
   var talk = { on: false, typing: null, full: "", step: 0, sel: 0 };
@@ -1762,7 +1860,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
       scene.add(new THREE.HemisphereLight(0x5a6c88, 0x050505, .22));
       bar.style.width = "30%";
       buildRoom(); bar.style.width = "60%";
-      buildObjects(); buildAtmos(); glossify(); bar.style.width = "100%";
+      buildObjects(); buildAtmos(); buildLife(); glossify(); bar.style.width = "100%";
       if (isTouch) scene.traverse(function (o) { if (o.isPointLight) o.visible = false; });
       composer = new THREE.EffectComposer(renderer); composer.addPass(new THREE.RenderPass(scene, camera));
       bloom = new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), .55, .5, .82); composer.addPass(bloom);
