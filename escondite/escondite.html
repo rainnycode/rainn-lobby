@@ -366,12 +366,12 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     menu.appendChild(b);
     var c = document.createElement("button");
     c.type = "button"; c.dataset.i = i; c.innerHTML = s.name + "<small>" + s.obj + "</small>";
-    c.addEventListener("click", function () { closeSheet(); fromFocus = false; openSection(i); });
+    c.addEventListener("click", function () { closeSheet(true); fromFocus = false; openSection(i); });
     sheetList.appendChild(c);
   });
   document.getElementById("sec-ct").textContent = SECTIONS.length;
-  function openSheet() { sheet.classList.add("open"); sheet.setAttribute("aria-hidden", "false"); hideHint(); setTimeout(function () { var f = sheetList.querySelector("button"); if (f) f.focus({ preventScroll: true }); }, 60); }
-  function closeSheet() { sheet.classList.remove("open"); sheet.setAttribute("aria-hidden", "true"); }
+  function openSheet() { sfx("open"); sheet.classList.add("open"); sheet.setAttribute("aria-hidden", "false"); hideHint(); setTimeout(function () { var f = sheetList.querySelector("button"); if (f) f.focus({ preventScroll: true }); }, 60); }
+  function closeSheet(silent) { if (!silent && sheet.classList.contains("open")) sfx("back"); sheet.classList.remove("open"); sheet.setAttribute("aria-hidden", "true"); }
   document.getElementById("sec-btn").addEventListener("click", openSheet);
   sheet.querySelector(".bd").addEventListener("click", closeSheet);
 
@@ -1509,6 +1509,29 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     var g = ctx.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(.55 + Math.random() * .3, t0 + .12); g.gain.exponentialRampToValueAtTime(.001, t0 + 3.8);
     src.connect(lp); lp.connect(g); g.connect(audio.master); src.start(t0); src.stop(t0 + 4);
   }
+  // Subtle UI sounds, synthesized; they follow the master volume and the mute button.
+  var sfxLast = {};
+  function sfx(kind) {
+    if (!audio.ctx || !audio.on) return;
+    var now = performance.now(); if (now - (sfxLast[kind] || 0) < (kind === "blip" ? 40 : 70)) return; sfxLast[kind] = now;
+    var ctx = audio.ctx, t = ctx.currentTime, g = ctx.createGain(); g.connect(audio.master);
+    function tone(type, f0, f1, dur, vol) {
+      var o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      var e = ctx.createGain(); e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(vol, t + .004); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(e); e.connect(g); o.start(t); o.stop(t + dur + .02);
+    }
+    if (kind === "hover") tone("sine", 2100, 1700, .045, .035);
+    else if (kind === "select") { tone("sine", 240, 130, .12, .22); tone("triangle", 1300, 900, .03, .04); }
+    else if (kind === "back") tone("sine", 180, 110, .1, .14);
+    else if (kind === "blip") tone("square", 520 + Math.random() * 40, 500, .022, .018);
+    else if (kind === "open") {
+      var src = ctx.createBufferSource(); src.buffer = audio.whoosh || (audio.whoosh = noiseBuffer(ctx, .4));
+      var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 1.2; bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(2400, t + .22);
+      var e = ctx.createGain(); e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(.12, t + .06); e.gain.exponentialRampToValueAtTime(.0001, t + .3);
+      src.connect(bp); bp.connect(e); e.connect(g); src.start(t); src.stop(t + .35);
+      tone("sine", 200, 140, .14, .12);
+    }
+  }
   function setSound(on) {
     audio.on = on; try { localStorage.setItem("rainn-sonido", on ? "on" : "off"); } catch (e) {}
     var b = document.getElementById("snd"); b.setAttribute("aria-pressed", on ? "true" : "false"); b.querySelector("span").textContent = on ? "Sonido" : "Silencio";
@@ -1568,7 +1591,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   // Step 1: tap an object -> camera moves to it, small card says what's inside.
   function focusSection(i) {
     var s = SECTIONS[i];
-    activeIdx = i; focusIdx = i; hideLock();
+    activeIdx = i; focusIdx = i; hideLock(); sfx("select");
     document.getElementById("f-eb").textContent = s.obj;
     document.getElementById("f-name").textContent = s.name;
     document.getElementById("f-tz").textContent = TEASER[s.id] || "";
@@ -1579,7 +1602,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   function unfocus() {
     if (focusIdx < 0) return;
-    focusIdx = -1; activeIdx = -1; showCard(false); camShift.target = 0;
+    focusIdx = -1; activeIdx = -1; showCard(false); camShift.target = 0; sfx("back");
     if (gl) { objects.forEach(function (o) { o.light.intensity = LAMP; }); startTween(orbitPose(orbit.theta, { pos: new THREE.Vector3(), look: new THREE.Vector3() }), 1.0, null); }
     lastAction = performance.now();
   }
@@ -1610,12 +1633,13 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     var k = 0;
     if (reduceMotion) { dlgText.textContent = txt; talk.typing = null; done(); return; }
     var t0 = performance.now();  // time-based, so a slow frame rate doesn't slow the text down
-    talk.typing = setInterval(function () { k = Math.min(txt.length, Math.floor((performance.now() - t0) / speed)); dlgText.textContent = txt.slice(0, k); if (k >= txt.length) { clearInterval(talk.typing); talk.typing = null; done(); } }, 30);
+    var said = 0;
+    talk.typing = setInterval(function () { k = Math.min(txt.length, Math.floor((performance.now() - t0) / speed)); dlgText.textContent = txt.slice(0, k); if (k - said >= 2) { said = k; if (/[a-záéíóúñ0-9]/i.test(txt.charAt(k - 1))) sfx("blip"); } if (k >= txt.length) { clearInterval(talk.typing); talk.typing = null; done(); } }, 30);
   }
   function showOpts(on, again) { dlgOpts.hidden = !on; if (on) { dlgOpts.querySelector('[data-opt="0"]').textContent = again ? "Escuchar otra" : "Escuchar oración"; talk.sel = 0; markOpt(); } }
   function markOpt() { dlgOpts.querySelectorAll("button").forEach(function (b, k) { b.classList.toggle("sel", k === talk.sel); }); }
   function talkRainn() {
-    talk.on = true; talk.step = 0; activeIdx = RAINN; hideLock(); hideHint();
+    talk.on = true; talk.step = 0; activeIdx = RAINN; hideLock(); hideHint(); sfx("select");
     document.body.classList.add("focus", "talking");
     dlg.hidden = false; requestAnimationFrame(function () { dlg.classList.add("show"); });
     showOpts(false);
@@ -1627,7 +1651,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     typeLine(LINES.hush, 45, function () { talk.step = 1; showOpts(true); });
   }
   function choose(k) {
-    showOpts(false);
+    showOpts(false); sfx(k === 0 ? "select" : "back");
     if (k === 0) { talk.step = 2; typeLine(nextPrayer(), 50, function () { talk.step = 3; showOpts(true, true); }); }
     else endTalk();
   }
@@ -1637,7 +1661,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   function endTalk() {
     if (!talk.on) return;
-    clearInterval(talk.typing); talk.typing = null; talk.on = false; activeIdx = -1;
+    clearInterval(talk.typing); talk.typing = null; talk.on = false; activeIdx = -1; sfx("back");
     dlg.classList.remove("show", "more"); setTimeout(function () { if (!talk.on) dlg.hidden = true; }, 200);
     document.body.classList.remove("focus", "talking"); camShift.target = 0;
     if (gl) startTween(orbitPose(orbit.theta, { pos: new THREE.Vector3(), look: new THREE.Vector3() }), 1.0, null);
@@ -1647,14 +1671,14 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   dlgOpts.querySelectorAll("button").forEach(function (b, k) { b.addEventListener("pointerenter", function () { talk.sel = k; markOpt(); }); });
   window.addEventListener("keydown", function (e) {
     if (!talk.on) return;
-    if (!dlgOpts.hidden && (e.key === "ArrowUp" || e.key === "ArrowDown")) { talk.sel = 1 - talk.sel; markOpt(); e.preventDefault(); return; }
+    if (!dlgOpts.hidden && (e.key === "ArrowUp" || e.key === "ArrowDown")) { talk.sel = 1 - talk.sel; markOpt(); sfx("hover"); e.preventDefault(); return; }
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!dlgOpts.hidden) choose(talk.sel); else advance(); }
   });
 
   // Step 2: the full section.
   function openSection(i) {
     var s = SECTIONS[i];
-    activeIdx = i; hideLock();
+    activeIdx = i; hideLock(); sfx("open");
     panelEb.textContent = s.obj + " · " + s.name;
     panelBody.innerHTML = s.html;
     menu.querySelectorAll("button").forEach(function (b) { b.classList.toggle("hot", +b.dataset.i === i); });
@@ -1666,6 +1690,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   function closeSection() {
     if (activeIdx < 0) return;
+    sfx("back");
     if (fromFocus) { var back = activeIdx; fromFocus = false; panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true"); document.body.classList.remove("panel-open"); menu.querySelectorAll("button").forEach(function (b) { b.classList.remove("hot"); }); focusSection(back); return; }
     activeIdx = -1; camShift.target = 0;
     panel.classList.remove("open"); panel.setAttribute("aria-hidden", "true");
@@ -1682,6 +1707,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     hoverIdx = i;
     objects.forEach(function (o, k) { o.light.intensity = activeIdx >= 0 ? o.light.intensity : (k === i ? LAMP * 1.6 : LAMP); o.pool.material.opacity = k === i ? .12 : .05; });
     if (i < 0) { hideLock(); return; }
+    sfx("hover");
     mira.classList.add("locked");
     lockLabel.hidden = false;
     lockLabel.querySelector(".n").textContent = i === RAINN ? "rainn" : SECTIONS[i].obj;
