@@ -108,10 +108,16 @@ function make_galgo(opts) {
       tailP.rotation.z = Math.sin(t * (moving ? 3 : 1.4)) * .25;
       tailP.rotation.x = .1;
     } else {
-      // lying: breathing, a slow look around now and then, an ear twitch
+      // lying: breathing; chin rests on the floor, then the head comes up to look around, then settles again (16 s loop)
       body.scale.set(1, 1 + Math.sin(t * 1.6) * .012, 1);
-      var look = Math.max(0, Math.sin(t * .23)) ;
-      neckP.rotation.x = .15 - look * .1; headP.rotation.y = Math.sin(t * .23) * .5 * look;
+      var ph = ((t + (opts.offset || 0)) % 16) / 16;
+      function sm(a, b, x) { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
+      var up = sm(.42, .56, ph) * (1 - sm(.82, .97, ph));          // 0 = resting on the floor, 1 = head up
+      var look = up * Math.sin((ph - .56) * Math.PI * 2 / .26);      // turns left/right only while up
+      neckP.rotation.x = 1.05 - up * .95;
+      headP.rotation.x = .25 - (1 - up) * .8 - up * .1;
+      headP.rotation.y = look * .45;
+      headP.rotation.z = (1 - up) * .06;
       var tw = (t % 7) < .25 ? Math.sin((t % 7) * 40) * .4 : 0;
       headP.userData["ear1"].rotation.x = -.6 + tw;
       tailP.rotation.z = .9 + Math.sin(t * .7) * .05;
