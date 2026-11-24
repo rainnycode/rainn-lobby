@@ -20,7 +20,7 @@ var dog = null, yaw = (+q.get("yaw") || 90) * Math.PI / 180;
 new THREE.GLTFLoader().load("../../galgos/galgo-pie.glb", function (gl) {
   var mesh; gl.scene.traverse(function (o) { if (o.isMesh) mesh = o; });
   dog = rigGalgo(mesh); s.add(dog.root);
-  if (!q.get("still")) { if (FIX !== null) { for (var i = 0; i < 120; i++) dog.tick(i / 60, true, 1 / 60); dog.tick(2, true, FIX / 2.3 * 1); } }
+  if (!q.get("still")) { if (FIX !== null) { var G = q.get('gait') === 'run' ? { walk: 0, run: 1 } : { walk: 1, run: 0 }; for (var i = 0; i < 180; i++) dog.tick(i / 60, G, 1 / 60); dog.tick(3, G, FIX); } }
   cam.position.set(Math.sin(yaw) * 2.4, .25, Math.cos(yaw) * 2.4); cam.lookAt(0, 0, 0);
   r.render(s, cam); window.done = 1;
 }, undefined, function (e) { window.err = String(e); window.done = 1; });

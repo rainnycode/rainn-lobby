@@ -1632,17 +1632,24 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   function tickDogs(t) {
     var d = dogs, dt = Math.min(.05, t - d.last || 0); d.last = t;
-    // mostly resting (idle: breathing, looking, sniffing); every 14-24 s a short run around the room
-    if (d.runUntil === undefined) { d.runUntil = 0; d.nextRun = 6; d.speed = 0; }
-    if (t > d.nextRun && t > d.runUntil) { d.runUntil = t + 3.2 + Math.random() * 1.5; d.nextRun = d.runUntil + 14 + Math.random() * 10; }
-    var moving = t < d.runUntil;
-    d.speed += ((moving ? 7.5 : 0) - d.speed) * Math.min(1, dt * (moving ? 2.5 : 3.5));   // accelerate / brake
+    // behaviour: rest (look, sniff) -> walk a while -> sometimes a short gallop -> walk -> rest
+    if (d.mode === undefined) { d.mode = "rest"; d.until = 5; d.speed = 0; d.walks = 0; }
+    if (t > d.until) {
+      if (d.mode === "rest") { d.mode = "walk"; d.until = t + 9 + Math.random() * 7; d.walks++; }
+      else if (d.mode === "walk") {
+        if (d.walks % 2 === 0 && Math.random() < .7) { d.mode = "run"; d.until = t + 3 + Math.random() * 1.5; }
+        else { d.mode = "rest"; d.until = t + 7 + Math.random() * 6; }
+      } else { d.mode = "walk"; d.until = t + 5 + Math.random() * 3; }
+    }
+    var target = d.mode === "run" ? 7.5 : d.mode === "walk" ? 1.0 : 0;
+    d.speed += (target - d.speed) * Math.min(1, dt * (target > d.speed ? 1.8 : 3));
     d.u = (d.u + dt * d.speed / d.len) % 1;
+    var gait = { run: Math.max(0, Math.min(1, (d.speed - 1.2) / 4)), walk: Math.min(1, d.speed / .6) };
     var p = d.path.getPointAt(d.u), ahead = d.path.getPointAt((d.u + .004) % 1);
     var want = Math.atan2(ahead.x - p.x, ahead.z - p.z), diff = Math.atan2(Math.sin(want - d.yaw), Math.cos(want - d.yaw));
     d.yaw += diff * Math.min(1, dt * 4);
     d.walk.g.position.set(p.x, 0, p.z); d.walk.g.rotation.y = d.yaw;
-    d.walk.tick(t, moving, dt); d.lie.tick(t, false, dt);
+    d.walk.tick(t, gait, dt); d.lie.tick(t, false, dt);
   }
   var winDark = new THREE.Color(0x0d1626), winLit = new THREE.Color(0xe6efff);
   function tickLife(t) {

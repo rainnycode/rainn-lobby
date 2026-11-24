@@ -67,47 +67,76 @@ function rigGalgo(mesh) {
   var sk = new THREE.SkinnedMesh(g, mat); sk.add(root); sk.updateMatrixWorld(true); sk.bind(new THREE.Skeleton(bones)); sk.castShadow = true; sk.receiveShadow = true;
   sk.frustumCulled = false;
 
-  // ---------- gallop + idle ----------
-  // tick(t, running, dt): running blends from a calm idle (breathing, looking around, sniffing)
-  // into a greyhound gallop: long reach from the shoulder, hind legs driving back, spine stretching and gathering.
-  // Bone x-rotation: + swings backward, - forward (model faces +Z).
-  var phase = 0, run = 0, sniffT = 0;
-  function tick(t, running, dt) {
+  // ---------- gaits ----------
+  // tick(t, gait, dt) with gait = { walk: 0..1, run: 0..1 }; both 0 = idle (breathing, looking, sniffing).
+  // WALK: feet are planted with 2-bone IK (sagittal plane): each paw stays still on the floor while the body
+  // passes over it, then lifts in an arc. Front elbow bends backward, hind stifle forward; the paw/hock flips on lift.
+  // RUN: rotary gallop (shoulder reach, hind drive, spine stretch/gather).
+  // Bone x-rotation: + swings backward, - forward (model faces +Z). phi(v): 0 = straight down, + = pointing back.
+  function phi(dy, dz) { return Math.atan2(-dz, -dy); }
+  var GROUND = -.37, WALK_F = 1.05, STRIDE = .22, LIFT = .055, DROP = .022;
+  ["FL", "FR", "HL", "HR"].forEach(function (k) {
+    var L = legs[k], q = L.pts;
+    L.l1 = Math.hypot(q[1].y - q[0].y, q[1].z - q[0].z); L.l2 = Math.hypot(q[2].y - q[1].y, q[2].z - q[1].z); L.l3 = Math.hypot(q[3].y - q[2].y, q[3].z - q[2].z);
+    L.p1 = phi(q[1].y - q[0].y, q[1].z - q[0].z); L.p2 = phi(q[2].y - q[1].y, q[2].z - q[1].z); L.p3 = phi(q[3].y - q[2].y, q[3].z - q[2].z);
+    L.footZ = q[3].z;
+  });
+  function walkLeg(L, u, out) {
+    // paw target in body space
+    var z, y, sw = 0;
+    if (u < .62) { z = L.footZ + STRIDE / 2 - STRIDE * (u / .62); y = GROUND; }
+    else { sw = (u - .62) / .38; var e = sw * sw * (3 - 2 * sw); z = L.footZ - STRIDE / 2 + STRIDE * e; y = GROUND + LIFT * Math.sin(Math.PI * sw); }
+    y += DROP;                                                   // body is lowered by DROP, so in body space the floor is higher
+    var flip = Math.sin(Math.PI * sw);                            // paw / hock flips back while in the air
+    var a3 = L.p3 + (L.front ? flip * 1.25 : flip * .45);          // absolute angle of the last segment
+    var wy = y + Math.cos(a3) * L.l3, wz = z + Math.sin(a3) * L.l3; // wrist / hock position
+    var sy = L.pts[0].y, sz = L.pts[0].z, dy = wy - sy, dz = wz - sz;
+    var D = Math.min(Math.hypot(dy, dz), (L.l1 + L.l2) * .999), base = phi(dy, dz);
+    var al = Math.acos(Math.max(-1, Math.min(1, (L.l1 * L.l1 + D * D - L.l2 * L.l2) / (2 * L.l1 * D))));
+    var a1 = L.front ? base + al : base - al;                      // elbow behind / stifle in front
+    var ey = sy - Math.cos(a1) * L.l1, ez = sz - Math.sin(a1) * L.l1;
+    var a2 = phi(wy - ey, wz - ez);
+    var r1 = a1 - L.p1, r2 = (a2 - L.p2) - r1, r3 = (a3 - L.p3) - (a2 - L.p2);
+    out.push(r1, r2, r3);
+  }
+  var wPhase = 0, rPhase = 0, sniffT = 0, cur = { walk: 0, run: 0 };
+  function tick(t, gait, dt) {
     dt = dt || 1 / 60;
-    run += ((running ? 1 : 0) - run) * Math.min(1, dt * 3);
-    var k = run, idle = 1 - run;
-    phase += dt * 2.3 * k;                           // strides per second
-    var th = phase * Math.PI * 2;
-    function leg(L, off, A, swingFold, fl) {
-      var a = th + off, c = Math.cos(a), s = Math.sin(a), fold;
-      if (L.front) {
-        fold = Math.max(0, -s);                      // recovery (moving forward): fold under the chest
-        L.a.rotation.x = k * (-.78 * c - fold * .05);
-        L.b.rotation.x = k * (fold * .55 - Math.max(0, c) * .12);
-        L.c.rotation.x = k * (fold * 1.35 - Math.max(0, c) * .18);
-      } else {
-        fold = Math.max(0, s);                       // recovery: hind leg comes forward under the belly
-        L.a.rotation.x = k * (.7 * c);
-        L.b.rotation.x = k * (fold * .85 + Math.max(0, c) * .1);
-        L.c.rotation.x = k * (-fold * 1.0 - Math.max(0, c) * .25);
-      }
-    }
-    // rotary gallop: the two fronts and the two hinds land a beat apart
-    leg(legs.FL, 0, 0, 0); leg(legs.FR, -.35, 0, 0); leg(legs.HL, 0, 0, 0); leg(legs.HR, -.35, 0, 0);
-    var c0 = Math.cos(th);
-    pelvis.rotation.x = k * (-.16 * c0); chest.rotation.x = k * (.1 * c0); spine.rotation.x = k * (-.05 * c0);
-    root.position.y = k * (.035 * Math.max(0, Math.sin(th * 2 + .6)) - .01);
-    pelvis.rotation.z = 0; chest.rotation.z = 0;
-    // head: low and forward when running; calm looks and sniffing when idle
+    if (typeof gait !== "object") gait = { walk: 0, run: gait ? 1 : 0 };
+    cur.walk += (gait.walk - cur.walk) * Math.min(1, dt * 3); cur.run += (gait.run - cur.run) * Math.min(1, dt * 3);
+    var W = cur.walk * (1 - cur.run), R = cur.run, idle = Math.max(0, 1 - W - R);
+    wPhase += dt * WALK_F * Math.min(1, W * 1.5); rPhase += dt * 2.3 * R;
+    // --- walk (lateral sequence: HL, FL, HR, FR) ---
+    var wr = [];
+    [["FL", .25], ["FR", .75], ["HL", 0], ["HR", .5]].forEach(function (q) { walkLeg(legs[q[0]], ((wPhase + q[1]) % 1 + 1) % 1, wr); });
+    // --- gallop ---
+    var th = rPhase * Math.PI * 2, rr = [];
+    [["FL", 0], ["FR", -.35], ["HL", 0], ["HR", -.35]].forEach(function (q) {
+      var L = legs[q[0]], a = th + q[1], c = Math.cos(a), s = Math.sin(a), f;
+      if (L.front) { f = Math.max(0, -s); rr.push(-.78 * c - f * .05, f * .55 - Math.max(0, c) * .12, f * 1.35 - Math.max(0, c) * .18); }
+      else { f = Math.max(0, s); rr.push(.7 * c, f * .85 + Math.max(0, c) * .1, -f * 1.0 - Math.max(0, c) * .25); }
+    });
+    ["FL", "FR", "HL", "HR"].forEach(function (k, i) {
+      var L = legs[k];
+      L.a.rotation.x = W * wr[i * 3] + R * rr[i * 3];
+      L.b.rotation.x = W * wr[i * 3 + 1] + R * rr[i * 3 + 1];
+      L.c.rotation.x = W * wr[i * 3 + 2] + R * rr[i * 3 + 2];
+    });
+    // --- body ---
+    var wth = wPhase * Math.PI * 2, c0 = Math.cos(th);
+    pelvis.rotation.x = R * (-.16 * c0); chest.rotation.x = R * (.1 * c0); spine.rotation.x = R * (-.05 * c0);
+    pelvis.rotation.z = W * Math.sin(wth) * .03; chest.rotation.z = W * Math.sin(wth + 1.6) * .025;
+    pelvis.rotation.y = W * Math.sin(wth) * .03;
+    root.position.y = -W * DROP + W * Math.sin(wth * 4) * .003 + R * (.035 * Math.max(0, Math.sin(th * 2 + .6)) - .01);
+    // --- head & tail ---
     sniffT += dt;
-    var sniff = idle * Math.max(0, Math.sin(sniffT * .35)) ;
-    neck.rotation.x = k * (.32 + Math.sin(th) * .05) + idle * (sniff * .6 + Math.sin(t * .5) * .03);
-    head.rotation.x = k * (-.18) + idle * (sniff * .2 + Math.sin(t * 7) * .02 * sniff);
-    neck.rotation.y = idle * Math.sin(t * .3) * .35 * (1 - sniff);
-    t0.rotation.x = k * .9; t1.rotation.x = k * .2;   // tail streams out behind when running
-    t0.rotation.z = idle * Math.sin(t * 1.4) * .15 + k * Math.sin(th) * .05; t1.rotation.z = idle * Math.sin(t * 1.4 - .6) * .12;
-    chest.scale.y = 1 + Math.sin(t * (2 + k * 3)) * (.006 + k * .006);
-    // idle legs settle back to the rest pose (k = 0 already zeroes the gallop terms)
+    var sniff = idle * Math.max(0, Math.sin(sniffT * .35));
+    neck.rotation.x = R * (.32 + Math.sin(th) * .05) + W * (.12 + Math.sin(wth * 2 + .5) * .035) + idle * (sniff * .6 + Math.sin(t * .5) * .03);
+    head.rotation.x = R * (-.18) + W * (-.05) + idle * (sniff * .2 + Math.sin(t * 7) * .02 * sniff);
+    neck.rotation.y = idle * Math.sin(t * .3) * .35 * (1 - sniff) + W * Math.sin(t * .4) * .12;
+    t0.rotation.x = R * .9 + W * .25; t1.rotation.x = R * .2;
+    t0.rotation.z = (idle + W) * Math.sin(t * (1.4 + W * 1.2)) * .15 + R * Math.sin(th) * .05; t1.rotation.z = (idle + W) * Math.sin(t * 1.4 - .6) * .12;
+    chest.scale.y = 1 + Math.sin(t * (2 + R * 3)) * (.006 + R * .006);
   }
   return { root: sk, tick: tick, bones: bones };
 }
