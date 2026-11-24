@@ -85,9 +85,13 @@ function rigGalgo(mesh) {
       }
       swing *= amt; fold *= amt; early *= amt; reach *= amt;
       if (L.front) {
-        L.a.rotation.x = swing - early * .06;                   // shoulder
-        L.b.rotation.x = early * .42 - reach * .14;             // elbow: forearm swings back and up, then forward
-        L.c.rotation.x = early * 1.2 - reach * .08;             // wrist folds back, opens before touchdown
+        // swing: wrist folds first, then the forearm reaches forward while the upper arm is still back -> the elbow shows
+        var wv = u < .6 ? 0 : (u - .6) / .4;
+        var fold1 = u < .6 ? 0 : Math.sin(Math.min(1, wv * 1.7) * Math.PI) * amt;
+        var reachF = u < .6 ? 0 : Math.sin(Math.min(1, Math.max(0, (wv - .25) / .65)) * Math.PI) * amt;
+        L.a.rotation.x = swing + reachF * .28;                   // shoulder/upper arm lags behind
+        L.b.rotation.x = fold1 * .3 - reachF * .75;              // elbow: forearm back at lift-off, then well forward
+        L.c.rotation.x = fold1 * 1.15 + reachF * .2;             // wrist folds, then opens as the forearm reaches
       }
       else { L.a.rotation.x = swing - fold * .15; L.b.rotation.x = fold * .55; L.c.rotation.x = -fold * .75; }  // stifle flexes, hock lifts the foot
     });
