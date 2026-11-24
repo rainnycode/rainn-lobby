@@ -1580,7 +1580,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     oldBed.add(blanket); oldBed.add(put(box(.6, .14, .38, white), MX - .15, .27, MZ - .7, .1));
     loadGLTF(["cama/cama.glb", "cama/cama.json"], function (gltf) {
       var m = gltf.scene, CS = 2.2;              // model 1 unit long; a double bed ~2.2 in scene units
-      m.scale.set(CS * 1.6, CS * 1.1, CS * 1.6); m.position.set(MX - .45, 0, MZ + .55);   // big enough for rainn to sleep in, still low m.rotation.y = .12 - Math.PI / 2;   // long side along z, pillows toward the wall
+      m.scale.set(CS * 1.25, CS * 1.1, CS * 1.8); m.position.set(MX - .7, 0, MZ + .9);   // big enough for rainn to sleep in, still low m.rotation.y = 2.55;   // diagonal: pillows (model +z) against the back wall, foot pointing toward rainn
       m.traverse(function (o) { if (o.isMesh) { o.castShadow = !isTouch; o.receiveShadow = true; o.material.userData.matte = true; o.material.envMapIntensity = .9; } });
       m.updateMatrixWorld(true); var bb = new THREE.Box3().setFromObject(m); m.position.y -= bb.min.y;
       home.add(m); oldBed.visible = false;
@@ -1593,11 +1593,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
       for (var v = 0; v < 9; v++) { var rec = at(box(.32, .32, .012, v % 3 ? black : M(0x2d3a55)), 0, .01, -.15 + v * .036); rec.rotation.x = (v % 2 ? .08 : -.05); g.add(rec); }
     }
     crate(4.2, .18, -11.9, -.2); crate(4.2, .54, -11.9, -.15); crate(4.65, .18, -11.4, .4);
-    // little fridge with a 1080 sticker
-    var stick = canvasTex(128, 128, function (x, w, h) { px(x, "#0c0c0d", 0, 0, w, h); x.fillStyle = "#ff2338"; x.font = "italic 700 46px Georgia, serif"; x.textAlign = "center"; x.fillText("1080", 64, 78); });
-    var fridge = put(box(.62, .86, .6, M(0xc8cbcf, { roughness: .35 })), -4.6, .43, -11.6, .15);
-    var st = new THREE.Mesh(new THREE.PlaneGeometry(.2, .2), new THREE.MeshStandardMaterial({ map: stick, roughness: .5 })); st.position.set(-4.6 + Math.sin(.15) * .311, .58, -11.6 + Math.cos(.15) * .311); st.rotation.y = .15; home.add(st);
-    put(box(.03, .3, .03, metal), -4.36, .55, -11.29, .15);
+    // (fridge removed)
     // sneakers by the sofa
     function shoe(x, z, ry) { var g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; home.add(g); g.add(at(box(.13, .05, .32, white), 0, .025, 0)); var up = at(box(.12, .09, .22, M(0xe8e8e8, { roughness: .5 })), 0, .09, -.04); g.add(up); g.add(at(box(.125, .02, .1, M(0xb7262f)), 0, .1, .07)); }
     shoe(-3.4, -9.6, .4); shoe(-3.2, -9.35, .1);
