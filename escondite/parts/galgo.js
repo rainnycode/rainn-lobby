@@ -9,21 +9,36 @@ function make_galgo(opts) {
   var base = new THREE.Color(opts.color || 0x8b8f96);
 
   // ---------- coat texture: short hair strokes, used as color + bump ----------
-  var furCanvas = document.createElement("canvas"); furCanvas.width = furCanvas.height = 256;
-  var fx = furCanvas.getContext("2d"); fx.fillStyle = "#c8c8c8"; fx.fillRect(0, 0, 256, 256);
+  // short smooth coat: soft mottling + thousands of hairs laid along the body (texture V runs head-to-tail)
   var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-  for (var i = 0; i < 5200; i++) {
-    var x = rnd() * 256, y = rnd() * 256, l = 3 + rnd() * 5, v = 150 + rnd() * 105;
-    fx.strokeStyle = "rgba(" + (v | 0) + "," + (v | 0) + "," + (v | 0) + ",.55)"; fx.lineWidth = .7;
-    fx.beginPath(); fx.moveTo(x, y); fx.lineTo(x + (rnd() - .5) * 1.2, y + l); fx.stroke();
+  var FS = 512, furCanvas = document.createElement("canvas"); furCanvas.width = furCanvas.height = FS;
+  var fx = furCanvas.getContext("2d"); fx.fillStyle = "#a2a2a2"; fx.fillRect(0, 0, FS, FS);
+  function wrapDraw(fn) { for (var ox = -FS; ox <= FS; ox += FS) for (var oy = -FS; oy <= FS; oy += FS) fn(ox, oy); }
+  for (var i = 0; i < 60; i++) {   // faint brindle/mottle
+    var cx = rnd() * FS, cy = rnd() * FS, r = 20 + rnd() * 70, d = rnd() > .5;
+    wrapDraw(function (ox, oy) { var g = fx.createRadialGradient(cx + ox, cy + oy, 0, cx + ox, cy + oy, r); g.addColorStop(0, d ? "rgba(60,60,64,.18)" : "rgba(230,230,232,.14)"); g.addColorStop(1, "rgba(0,0,0,0)"); fx.fillStyle = g; fx.fillRect(cx + ox - r, cy + oy - r, r * 2, r * 2); });
   }
-  var fur = new THREE.CanvasTexture(furCanvas); fur.wrapS = fur.wrapT = THREE.RepeatWrapping; fur.repeat.set(6, 6); fur.encoding = THREE.sRGBEncoding;
-  var furBump = new THREE.CanvasTexture(furCanvas); furBump.wrapS = furBump.wrapT = THREE.RepeatWrapping; furBump.repeat.set(6, 6);
+  for (var i = 0; i < 26000; i++) {
+    var x = rnd() * FS, y = rnd() * FS, l = 5 + rnd() * 9, v = rnd() < .5 ? 70 + rnd() * 60 : 170 + rnd() * 85;
+    fx.strokeStyle = "rgba(" + (v | 0) + "," + (v | 0) + "," + ((v + 4) | 0) + "," + (.25 + rnd() * .35) + ")"; fx.lineWidth = .6 + rnd() * .6;
+    fx.beginPath(); fx.moveTo(x, y); fx.quadraticCurveTo(x + (rnd() - .5) * 1.5, y + l * .5, x + (rnd() - .5) * 2.5, y + l); fx.stroke();
+  }
+  var fur = new THREE.CanvasTexture(furCanvas); fur.wrapS = fur.wrapT = THREE.RepeatWrapping; fur.repeat.set(3, 3); fur.encoding = THREE.sRGBEncoding; fur.anisotropy = 4;
+  var furBump = new THREE.CanvasTexture(furCanvas); furBump.wrapS = furBump.wrapT = THREE.RepeatWrapping; furBump.repeat.set(3, 3);
+  // fur tips for the outer shells (soft silhouette)
+  var tipC = document.createElement("canvas"); tipC.width = tipC.height = 256; var tx = tipC.getContext("2d"); tx.fillStyle = "#000"; tx.fillRect(0, 0, 256, 256);
+  for (var i = 0; i < 9000; i++) { var x = rnd() * 256, y = rnd() * 256, v = 120 + rnd() * 135; tx.strokeStyle = "rgb(" + (v | 0) + "," + (v | 0) + "," + (v | 0) + ")"; tx.lineWidth = .8; tx.beginPath(); tx.moveTo(x, y); tx.lineTo(x + (rnd() - .5), y + 2 + rnd() * 3); tx.stroke(); }
+  var tips = new THREE.CanvasTexture(tipC); tips.wrapS = tips.wrapT = THREE.RepeatWrapping; tips.repeat.set(5, 5);
+  // matte coat with a soft sheen (no plastic clearcoat); the scene's glossify() skips anything marked matte
+  function furMat(color, vc, bump) {
+    var m = new THREE.MeshPhysicalMaterial({ color: color, map: fur, bumpMap: furBump, bumpScale: bump || .006, roughness: .86, metalness: 0, vertexColors: !!vc });
+    m.sheen = new THREE.Color(0x3a3e45); m.userData.matte = true; return m;
+  }
 
-  var coat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: fur, bumpMap: furBump, bumpScale: .0025, roughness: .62, vertexColors: true });
-  var coatLeg = new THREE.MeshStandardMaterial({ color: base.clone().lerp(new THREE.Color(0xb0b4ba), .25), map: fur, bumpMap: furBump, bumpScale: .002, roughness: .62 });
-  var coatMid = new THREE.MeshStandardMaterial({ color: base.clone().multiplyScalar(.92), map: fur, bumpMap: furBump, bumpScale: .0025, roughness: .62 });
-  var dark = new THREE.MeshStandardMaterial({ color: base.clone().multiplyScalar(.55), map: fur, roughness: .6 });
+  var coat = furMat(0xffffff, true);
+  var coatLeg = furMat(base.clone().multiplyScalar(.93), false, .005);
+  var coatMid = furMat(base.clone().multiplyScalar(.9), false);
+  var dark = furMat(base.clone().multiplyScalar(.58), false, .004);
   var leather = new THREE.MeshStandardMaterial({ color: 0x1b1a1c, roughness: .35 });
   var eyeM = new THREE.MeshStandardMaterial({ color: 0x0b0806, roughness: .05, metalness: .1 });
   var shine = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -76,7 +91,16 @@ function make_galgo(opts) {
 
   // ---------- torso: arched loin, deep keel chest, strong tuck-up ----------
   //           y     z     hw    hh   keel
-  body.add(new THREE.Mesh(loft([
+  function shells(mesh, parent) {   // 3 thin offset layers with hair tips cut out by alphaTest
+    var g0 = mesh.geometry, n = g0.attributes.normal, p = g0.attributes.position;
+    for (var k = 1; k <= 3; k++) {
+      var g = g0.clone(), q = g.attributes.position, d = .0028 * k;
+      for (var i = 0; i < q.count; i++) q.setXYZ(i, p.getX(i) + n.getX(i) * d, p.getY(i) + n.getY(i) * d, p.getZ(i) + n.getZ(i) * d);
+      var m = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: !!g.attributes.color, map: fur, alphaMap: tips, alphaTest: .3 + k * .17, roughness: .9 });
+      m.userData.matte = true; var sh = new THREE.Mesh(g, m); sh.userData.shell = true; parent.add(sh);
+    }
+  }
+  var torsoMesh = new THREE.Mesh(loft([
     [.655, -.45, .04, .045, 0],
     [.675, -.40, .085, .10, .1],
     [.695, -.33, .112, .128, .15],   // haunches
@@ -88,16 +112,16 @@ function make_galgo(opts) {
     [.63, .2, .128, .19, .45],
     [.68, .265, .112, .14, .25],     // shoulders
     [.735, .305, .075, .085, .1]
-  ], 44, 30), coat));
+  ], 44, 30), coat); body.add(torsoMesh); shells(torsoMesh, body);
   // shoulder blades and haunch muscles: soft bumps under the coat
   // shoulder blades and haunches: shallow bumps that only just break the body line
-  [[.085, .69, .21, .045, .085, .085], [.085, .68, -.3, .05, .09, .09]].forEach(function (m) {
+  [].forEach(function (m) {   // (removed: read as stuck-on discs)
     [-1, 1].forEach(function (s) { var b = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), coatMid); b.scale.set(m[3], m[4], m[5]); b.position.set(s * m[0], m[1], m[2]); body.add(b); });
   });
 
   // ---------- neck + head ----------
   var neckP = new THREE.Group(); neckP.position.set(0, .74, .28); body.add(neckP);
-  neckP.add(new THREE.Mesh(loft([[-.02, -.06, .075, .085, .1], [.03, .0, .066, .074, .05], [.08, .07, .056, .062, 0], [.13, .17, .046, .05, 0]], 16, 22), coat));
+  var neckMesh = new THREE.Mesh(loft([[-.02, -.06, .075, .085, .1], [.03, .0, .066, .074, .05], [.08, .07, .056, .062, 0], [.13, .17, .046, .05, 0]], 16, 22), coat); neckP.add(neckMesh); shells(neckMesh, neckP);
   var collar = new THREE.Mesh(new THREE.TorusGeometry(.066, .009, 8, 28), collarM); collar.position.set(0, .045, .03); collar.rotation.x = -1.0; collar.scale.set(1, 1.08, 1); neckP.add(collar);
   var ring = new THREE.Mesh(new THREE.TorusGeometry(.012, .003, 6, 14), ringM); ring.position.set(0, -.01, .075); ring.rotation.x = .5; neckP.add(ring);
 
@@ -192,6 +216,6 @@ function make_galgo(opts) {
       tailP.rotation.z = .9 + Math.sin(t * .7) * .05;
     }
   }
-  root.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  root.traverse(function (o) { if (o.isMesh) { o.castShadow = !o.userData.shell; o.receiveShadow = true; } });
   return { g: root, tick: tick };
 }

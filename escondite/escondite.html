@@ -1577,7 +1577,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   var dogs = null;
   function buildDogs() {
     if (typeof make_galgo !== "function") return;
-    var S = 1.5, coat = 0x7f848c;
+    var S = 1.5, coat = 0x9a9fa7;
     // lying one: beside rainn, a little apart, facing the same way he does
     var lie = make_galgo({ pose: "lie", color: coat }); lie.g.scale.setScalar(S);
     lie.g.position.set(RAINN_AT.x + .88 * 2.3 + RAINN_DIR.x * .9, 0, RAINN_AT.z - .48 * 2.3 + RAINN_DIR.z * .9); lie.g.rotation.y = -Math.PI / 2 - .15; scene.add(lie.g);
@@ -1940,7 +1940,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   function glossify() {
     var cache = new Map();
     function conv(m) {
-      if (!m || !m.isMeshStandardMaterial || m.transparent) return m;
+      if (!m || !m.isMeshStandardMaterial || m.transparent || (m.userData && m.userData.matte)) return m;
       if (cache.has(m)) return cache.get(m);
       var p = m.isMeshPhysicalMaterial ? m : new THREE.MeshPhysicalMaterial();
       if (p !== m) { THREE.MeshStandardMaterial.prototype.copy.call(p, m); p.defines = { STANDARD: "", PHYSICAL: "" }; }
