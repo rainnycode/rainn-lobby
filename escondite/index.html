@@ -1580,7 +1580,8 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     oldBed.add(blanket); oldBed.add(put(box(.6, .14, .38, white), MX - .15, .27, MZ - .7, .1));
     loadGLTF(["cama/cama.glb", "cama/cama.json"], function (gltf) {
       var m = gltf.scene, CS = 2.2;              // model 1 unit long; a double bed ~2.2 in scene units
-      m.scale.set(CS * 1.25, CS * 1.1, CS * 1.8); m.position.set(MX - .7, 0, MZ + .9);   // big enough for rainn to sleep in, still low m.rotation.y = 2.55;   // diagonal: pillows (model +z) against the back wall, foot pointing toward rainn
+      m.scale.set(CS * 1.7, CS * 1.1, CS * 1.35); m.position.set(MX - .7, 0, MZ + .9);   // big enough for rainn to sleep in, still low
+      m.rotation.y = -2.25;  // diagonal: head (model -x, pillows) to the back wall, foot pointing at rainn (checked top-down)
       m.traverse(function (o) { if (o.isMesh) { o.castShadow = !isTouch; o.receiveShadow = true; o.material.userData.matte = true; o.material.envMapIntensity = .9; } });
       m.updateMatrixWorld(true); var bb = new THREE.Box3().setFromObject(m); m.position.y -= bb.min.y;
       home.add(m); oldBed.visible = false;
