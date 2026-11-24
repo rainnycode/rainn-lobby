@@ -9,8 +9,8 @@ function rigGalgo(mesh) {
   var J = {
     pelvis: V3(0, .1, -.3), spine: V3(0, .15, -.05), chest: V3(0, .12, .2), neck: V3(.01, .2, .3), head: V3(.1, .3, .4), nose: V3(.18, .25, .5),
     tail0: V3(-.045, .06, -.43), tail1: V3(-.045, -.08, -.47), tail2: V3(-.05, -.22, -.5), tailEnd: V3(-.05, -.3, -.5),
-    FL: [V3(-.06, .04, .23), V3(-.058, -.08, .226), V3(-.055, -.28, .225), V3(-.07, -.37, .275)],
-    FR: [V3(.06, .04, .21), V3(.06, -.08, .21), V3(.045, -.28, .21), V3(.088, -.37, .263)],
+    FL: [V3(-.06, .1, .22), V3(-.058, -.08, .226), V3(-.055, -.28, .225), V3(-.07, -.37, .275)],
+    FR: [V3(.06, .1, .2), V3(.06, -.08, .21), V3(.045, -.28, .21), V3(.088, -.37, .263)],
     HL: [V3(-.075, .06, -.3), V3(-.085, -.08, -.35), V3(-.135, -.24, -.388), V3(-.17, -.37, -.34)],
     HR: [V3(.065, .06, -.3), V3(.069, -.08, -.3), V3(.06, -.24, -.378), V3(.092, -.37, -.337)]
   };
@@ -42,12 +42,12 @@ function rigGalgo(mesh) {
   for (var i = 0; i < n; i++) {
     var p = V3(P.getX(i), P.getY(i), P.getZ(i));
     var isTail = p.z < -.41 && Math.abs(p.x + .045) < .035 && p.y < .1;
-    var front = p.z > .14 && p.z < .37 && p.y < .02, hind = p.z > -.47 && p.z < -.23 && p.y < .04 && !isTail;
+    var front = p.z > .14 && p.z < .37 && p.y < .08 && Math.abs(p.x) > (p.y > -.02 ? .03 : 0), hind = p.z > -.47 && p.z < -.23 && p.y < .04 && !isTail;
     if (isTail) {
       if (p.y > -.08) set(i, "tail0", "tail1", sm(.04, -.08, p.y)); else set(i, "tail1", "tail2", sm(-.1, -.22, p.y));
     } else if (front || hind) {
       var k = front ? (p.x < 0 ? "FL" : "FR") : (p.x < -.015 ? "HL" : "HR"), L = legs[k], q = L.pts;
-      var top = front ? .02 : .04;
+      var top = front ? .08 : .04;
       // segment by height with soft blends at the joints
       var y1 = q[1].y, y2 = q[2].y;
       if (p.y > y1) set(i, k + "1", front ? "chest" : "pelvis", sm(y1 + .03, top, p.y));      // upper leg, melting into the body at the top
@@ -76,11 +76,19 @@ function rigGalgo(mesh) {
     // Bone x-rotation: + swings the part backward, - forward (model faces +Z).
     var lift = 0;
     [["HL", 0], ["FL", .25], ["HR", .5], ["FR", .75]].forEach(function (q) {
-      var L = legs[q[0]], u = ((p / (Math.PI * 2) + q[1]) % 1 + 1) % 1, A = L.front ? .3 : .26, swing, fold;
-      if (u < .6) { swing = -A + 2 * A * (u / .6); fold = 0; }
-      else { var w = (u - .6) / .4, e = w * w * (3 - 2 * w); swing = A - 2 * A * e; fold = Math.sin(w * Math.PI); lift += fold; }
-      swing *= amt; fold *= amt;
-      if (L.front) { L.a.rotation.x = swing; L.b.rotation.x = -fold * .3; L.c.rotation.x = fold * 1.15; }      // elbow forward, wrist folds back
+      var L = legs[q[0]], u = ((p / (Math.PI * 2) + q[1]) % 1 + 1) % 1, A = L.front ? .34 : .26, swing, fold, early = 0, reach = 0;
+      if (u < .6) { var k = u / .6; swing = -A + 2 * A * k; fold = 0; reach = 0; }
+      else {
+        var w = (u - .6) / .4, e = w * w * (3 - 2 * w); swing = A - 2.15 * A * e; fold = Math.sin(w * Math.PI); lift += fold;
+        early = Math.sin(Math.min(1, w * 1.5) * Math.PI);        // lift-off: elbow and wrist fold first
+        reach = Math.max(0, Math.sin((w - .45) / .55 * Math.PI)); // then the foreleg straightens and reaches forward
+      }
+      swing *= amt; fold *= amt; early *= amt; reach *= amt;
+      if (L.front) {
+        L.a.rotation.x = swing - early * .06;                   // shoulder
+        L.b.rotation.x = early * .42 - reach * .14;             // elbow: forearm swings back and up, then forward
+        L.c.rotation.x = early * 1.2 - reach * .08;             // wrist folds back, opens before touchdown
+      }
       else { L.a.rotation.x = swing - fold * .15; L.b.rotation.x = fold * .55; L.c.rotation.x = -fold * .75; }  // stifle flexes, hock lifts the foot
     });
     root.position.y = (Math.sin(p * 2) * .004 - .002) * amt;
