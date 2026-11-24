@@ -1560,12 +1560,21 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     var crushed = put(new THREE.Mesh(new THREE.CylinderGeometry(.034, .03, .07, 10), canMat), TX + 1.1, .04, TZ + .6); crushed.rotation.z = Math.PI / 2;
     var pizzaTex = canvasTex(128, 128, function (x, w, h) { px(x, "#b58c5c", 0, 0, w, h); x.strokeStyle = "#8a2a24"; x.lineWidth = 6; x.beginPath(); x.arc(64, 64, 34, 0, 6.3); x.stroke(); x.fillStyle = "#8a2a24"; x.font = "bold 18px sans-serif"; x.textAlign = "center"; x.fillText("PIZZA", 64, 70); x.fillStyle = "rgba(90,50,20,.35)"; x.beginPath(); x.arc(92, 34, 14, 0, 6.3); x.fill(); });
     var pz = put(new THREE.Mesh(new THREE.BoxGeometry(.5, .05, .5), [M(0xb58c5c), M(0xb58c5c), new THREE.MeshStandardMaterial({ map: pizzaTex, roughness: .9 }), M(0xb58c5c), M(0xb58c5c), M(0xb58c5c)]), TX - 2.1, .03, TZ + .7, .5);
-    // mattress on the floor with a blanket and pillow
+    // Japanese floor bed (Tripo, from our own reference): low wooden platform, tatami, futon, black duvet.
+    // The old box mattress stays until the model loads (and as a fallback).
     var MX = 2.4, MZ = -10.8;
     var matTex = canvasTex(256, 256, function (x, w, h) { px(x, "#bdbab2", 0, 0, w, h); var r = rnd(44); x.strokeStyle = "rgba(0,0,0,.08)"; for (var q = 0; q < w; q += 32) { x.beginPath(); x.moveTo(q, 0); x.lineTo(q, h); x.stroke(); x.beginPath(); x.moveTo(0, q); x.lineTo(w, q); x.stroke(); } for (var i = 0; i < 6; i++) { var cx = r() * w, cy = r() * h, rr = 14 + r() * 30, g = x.createRadialGradient(cx, cy, 0, cx, cy, rr); g.addColorStop(0, "rgba(120,100,60,.25)"); g.addColorStop(1, "rgba(120,100,60,0)"); x.fillStyle = g; x.fillRect(cx - rr, cy - rr, rr * 2, rr * 2); } });
-    put(new THREE.Mesh(new THREE.BoxGeometry(1.5, .2, 2.1), new THREE.MeshStandardMaterial({ map: matTex, roughness: .9 })), MX, .1, MZ, .12);
+    var oldBed = new THREE.Group(); home.add(oldBed);
+    oldBed.add(put(new THREE.Mesh(new THREE.BoxGeometry(1.5, .2, 2.1), new THREE.MeshStandardMaterial({ map: matTex, roughness: .9 })), MX, .1, MZ, .12));
     var blanket = put(box(1.45, .06, 1.2, M(0x2a2f3a, { roughness: .95 })), MX + .05, .23, MZ + .35, .2); blanket.rotation.z = .03;
-    put(box(.6, .14, .38, white), MX - .15, .27, MZ - .7, .1);
+    oldBed.add(blanket); oldBed.add(put(box(.6, .14, .38, white), MX - .15, .27, MZ - .7, .1));
+    loadGLTF(["cama/cama.glb", "cama/cama.json"], function (gltf) {
+      var m = gltf.scene, CS = 2.2;              // model 1 unit long; a double bed ~2.2 in scene units
+      m.scale.setScalar(CS); m.position.set(MX + .1, 0, MZ + .05); m.rotation.y = .12 - Math.PI / 2;   // long side along z, pillows toward the wall
+      m.traverse(function (o) { if (o.isMesh) { o.castShadow = !isTouch; o.receiveShadow = true; o.material.userData.matte = true; o.material.envMapIntensity = .9; } });
+      m.updateMatrixWorld(true); var bb = new THREE.Box3().setFromObject(m); m.position.y -= bb.min.y;
+      home.add(m); oldBed.visible = false;
+    });
     // milk crates full of records
     var crateMat = M(0x8a1d22, { roughness: .6 });
     function crate(x, y, z, ry) {
