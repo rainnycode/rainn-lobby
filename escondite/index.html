@@ -285,6 +285,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
 <script src="vendor/UnrealBloomPass.js"></script>
 <script src="vendor/GLTFLoader.js"></script>
 <script src="parts/galgo.js"></script>
+<script src="parts/galgo-rig.js"></script>
 <script>
 (function () {
   "use strict";
@@ -1599,7 +1600,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
       m.scale.setScalar(GS); m.position.y = .332 * GS; lie.g.add(m);
       m.traverse(function (o) {
         if (!o.isMesh) return;
-        var mat = o.material; mat.roughness = 1; mat.metalness = 0; mat.envMapIntensity = .8; mat.userData.matte = true;
+        var mat = o.material; mat.roughness = .9; mat.metalness = 0; mat.envMapIntensity = 1.5; mat.color.setScalar(1.45); mat.userData.matte = true;
         mat.onBeforeCompile = function (sh) {
           sh.uniforms.uT = rainnTime;
           sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", [
@@ -1622,7 +1623,15 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
       });
     });
     // walking one: a slow loop around the room, stopping now and then to sniff
-    var walk = make_galgo({ pose: "walk", color: coat }); walk.g.scale.setScalar(S); scene.add(walk.g);
+    // sculpted standing greyhound (Tripo) with a skeleton built in parts/galgo-rig.js; falls back to the coded one
+    var walk = { g: new THREE.Group(), tick: function () {} }; scene.add(walk.g);
+    loadGLTF(["galgos/galgo-pie.glb", "galgos/galgo-pie.json"], function (gltf) {
+      var mesh; gltf.scene.traverse(function (o) { if (o.isMesh && !mesh) mesh = o; });
+      if (!mesh || typeof rigGalgo !== "function") return;
+      var mat = mesh.material; mat.roughness = .9; mat.metalness = 0; mat.envMapIntensity = 1.5; mat.color.setScalar(1.45); mat.userData.matte = true;
+      var rig = rigGalgo(mesh), GS = 1.85; rig.root.scale.setScalar(GS); rig.root.position.y = .37 * GS;
+      rig.root.castShadow = !isTouch; walk.g.add(rig.root); walk.tick = rig.tick;
+    });
     var path = new THREE.CatmullRomCurve3([[-6, 1.5], [-3, 4.6], [1.5, 5.6], [6, 2.6], [6.6, -2], [3, -5.6], [.4, -6.6], [-3.4, -7], [-5.2, -6.5], [-6.3, -2.6]].map(function (p) { return new THREE.Vector3(p[0], 0, p[1]); }), true, "catmullrom", .5);
     var len = path.getLength();
     if (isTouch) [walk].forEach(function (d) { d.g.traverse(function (o) { if (o.isMesh) o.castShadow = false; }); });
