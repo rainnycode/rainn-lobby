@@ -545,6 +545,13 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
             "float a = wr * (.012 * sin(uT * .45) + .004 * br);",
             "vec2 q = transformed.xy - vec2(-.17, -.19);",
             "transformed.xy = vec2(q.x * cos(a) - q.y * sin(a), q.x * sin(a) + q.y * cos(a)) + vec2(-.17, -.19);"
+          ].join("\n")).replace("void main() {", "varying vec3 vRP;\nvoid main() {\n  vRP = position;");
+          // face in shadow: the whole face sits dark under the wrap (hands stay lit)
+          sh.fragmentShader = sh.fragmentShader.replace("void main() {", "varying vec3 vRP;\nvoid main() {").replace("#include <dithering_fragment>", [
+            "#include <dithering_fragment>",
+            "float fm = smoothstep(.17, .22, vRP.y) * (1. - smoothstep(.02, .045, vRP.x));",
+            "float under = 1. - smoothstep(.33, .38, vRP.y);",
+            "gl_FragColor.rgb *= mix(1., mix(.55, .08, under), fm);"
           ].join("\n"));
         };
         o.material = p; o.castShadow = !isTouch; o.receiveShadow = true;
