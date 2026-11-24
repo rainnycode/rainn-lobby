@@ -515,7 +515,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   function loadRainn(parent) {
     if (!THREE.GLTFLoader) return;
     // .glb on the real site; .json (same model, embedded) where .glb files are not served.
-    var urls = ["rainn/rainn-hd.glb", "rainn/rainn-hd.json", "rainn/rainn-orando-final.glb", "rainn/rainn-orando-final.json"];
+    var urls = ["rainn/rainn-v3.glb", "rainn/rainn-v3.json", "rainn/rainn-hd.glb", "rainn/rainn-hd.json", "rainn/rainn-orando-final.glb", "rainn/rainn-orando-final.json"];
     (function tryLoad(k) { new THREE.GLTFLoader().load(urls[k], onModel, undefined, function () { if (k + 1 < urls.length) tryLoad(k + 1); }); })(0);
     function onModel(gltf) {
       parent.children.forEach(function (c) { if (c.userData.block) c.visible = false; });
@@ -525,7 +525,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
         if (!o.isMesh) return;
         var src = o.material, p = new THREE.MeshPhysicalMaterial();
         THREE.MeshStandardMaterial.prototype.copy.call(p, src); p.defines = { STANDARD: "", PHYSICAL: "" };
-        p.roughness = .55; p.metalness = 0; p.clearcoat = .25; p.clearcoatRoughness = .45; p.envMapIntensity = 1.2;
+        p.roughness = .7; p.metalness = 0; p.clearcoat = .1; p.clearcoatRoughness = .6; p.envMapIntensity = 1.0;   // less plastic shine on skin
         p.onBeforeCompile = function (sh) {
           sh.uniforms.uT = rainnTime;
           sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", [
