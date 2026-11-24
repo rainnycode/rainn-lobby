@@ -54,7 +54,7 @@ Página = **mundo 3D que se explora como un juego**: "el escondite de rainn".
 | Tablero de expedientes MÚSICA / OTRAS COSAS (BASKIAT, PASH, SYS VINTAGE) | Colaboraciones | ✅ código (Rubén lo aprobó: "así está bien") |
 | Repisa de figuras: rainn, Sebs (martillo/gorra), Kim Atenea (espíritu de agua), JD RED (piel roja, mono negro, llamas) | Bio + universo + personajes | ⏳ placeholder — falta 3D |
 | Maniquí 1080 (ropa negra, pañuelo blanco) + perchero | 1080 | ⏳ placeholder — falta 3D |
-| **rainn sentado orando, manos juntas** (NO clickeable) | — | ✅ en escena (`escondite/rainn/rainn-orando-final.glb` + `.json` para artifacts); cara: pendiente foto de frente para proyectar |
+| **rainn sentado orando, manos juntas** (clickeable: oraciones) | — | ✅ HD (`rainn/rainn-hd.glb`, Tripo detailed job f8cc6940 de la imagen c103598f) en escena (`escondite/rainn/rainn-orando-final.glb` + `.json` para artifacts); cara: pendiente foto de frente para proyectar |
 
 ## Técnico del escondite
 - Three.js **r128** desde cdnjs; postprocesado desde jsDelivr `three@0.128.0/examples/js` (CopyShader, LuminosityHighPassShader, EffectComposer, RenderPass, ShaderPass, UnrealBloomPass).

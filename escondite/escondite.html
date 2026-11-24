@@ -479,7 +479,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     var hubLight = new THREE.SpotLight(0xdde6ff, 1.6, 16, .45, .5, 1); hubLight.position.set(0, 11, 0); hubLight.target.position.set(0, 0, 0); scene.add(hubLight); scene.add(hubLight.target);
     // reserved spot: rainn sitting, hands together (placeholder)
     var seat = new THREE.Group();
-    seat.add(at(box(3, .7, 1, concrete), 0, .35, 0));
+    var block = at(box(3, .7, 1, concrete), 0, .35, 0); block.userData.block = true; seat.add(block);   // hidden once the HD model (with its own crate) loads
     loadRainn(seat);
     var rh = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.6, 1.9), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
     rh.position.set(RAINN_AT.x, 1.3, RAINN_AT.z); rh.rotation.y = .5; rh.userData.idx = RAINN; scene.add(rh); hitBoxes.push(rh);
@@ -515,9 +515,10 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   function loadRainn(parent) {
     if (!THREE.GLTFLoader) return;
     // .glb on the real site; .json (same model, embedded) where .glb files are not served.
-    var urls = ["rainn/rainn-orando-final.glb", "rainn/rainn-orando-final.json"];
+    var urls = ["rainn/rainn-hd.glb", "rainn/rainn-hd.json", "rainn/rainn-orando-final.glb", "rainn/rainn-orando-final.json"];
     (function tryLoad(k) { new THREE.GLTFLoader().load(urls[k], onModel, undefined, function () { if (k + 1 < urls.length) tryLoad(k + 1); }); })(0);
     function onModel(gltf) {
+      parent.children.forEach(function (c) { if (c.userData.block) c.visible = false; });
       var m = gltf.scene, S = 2.3;
       m.scale.setScalar(S); m.rotation.y = -Math.PI / 2; m.position.set(0, .5 * S, .36);
       m.traverse(function (o) {
@@ -532,7 +533,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
             "float br = sin(uT * 1.5);",
             "float wc = smoothstep(-.12, .04, position.y) * (1. - smoothstep(.2, .3, position.y));",
             "transformed += objectNormal * wc * .0035 * br;",
-            "float wr = smoothstep(-.26, -.1, position.y);",
+            "float wr = smoothstep(-.14, .0, position.y);",   // the crate stays still
             "float a = wr * (.012 * sin(uT * .45) + .004 * br);",
             "vec2 q = transformed.xy - vec2(-.17, -.19);",
             "transformed.xy = vec2(q.x * cos(a) - q.y * sin(a), q.x * sin(a) + q.y * cos(a)) + vec2(-.17, -.19);"
