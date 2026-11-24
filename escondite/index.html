@@ -1642,7 +1642,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     var d = dogs, dt = Math.min(.05, t - d.last || 0); d.last = t;
     var moving = t > d.stopUntil;
     if (moving && t > d.nextStop) { d.stopUntil = t + 2.5 + Math.random() * 2; d.nextStop = d.stopUntil + 9 + Math.random() * 8; moving = false; }
-    if (moving) d.u = (d.u + dt * .55 / d.len) % 1;
+    if (moving) d.u = (d.u + dt * .62 / d.len) % 1;
     var p = d.path.getPointAt(d.u), ahead = d.path.getPointAt((d.u + .004) % 1);
     var want = Math.atan2(ahead.x - p.x, ahead.z - p.z), diff = Math.atan2(Math.sin(want - d.yaw), Math.cos(want - d.yaw));
     d.yaw += diff * Math.min(1, dt * 4);

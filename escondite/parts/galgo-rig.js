@@ -70,16 +70,23 @@ function rigGalgo(mesh) {
   // ---------- walk cycle ----------
   var phase = 0, sniff = 0;
   function tick(t, moving, dt) {
-    dt = dt || 1 / 60; var amt = moving ? 1 : 0; phase += dt * 6.2 * amt; var p = phase;
-    [["FL", 0], ["FR", Math.PI], ["HL", Math.PI], ["HR", 0]].forEach(function (q) {
-      var L = legs[q[0]], s = Math.sin(p + q[1]), c = Math.cos(p + q[1]);
-      if (L.front) { L.a.rotation.x = s * .38 * amt; L.b.rotation.x = Math.max(0, -c) * .25 * amt; L.c.rotation.x = -Math.max(0, -c) * .9 * amt; }
-      else { L.a.rotation.x = s * .32 * amt; L.b.rotation.x = Math.max(0, c) * .45 * amt; L.c.rotation.x = -Math.max(0, c) * .55 * amt; }
+    dt = dt || 1 / 60; var amt = moving ? 1 : 0; phase += dt * 6.0 * amt; var p = phase;
+    // dog walk (lateral sequence): hind-left, fore-left, hind-right, fore-right, a quarter cycle apart.
+    // Each foot: 60% stance (leg sweeps back, nearly straight), 40% swing (lifts, folds, reaches forward).
+    // Bone x-rotation: + swings the part backward, - forward (model faces +Z).
+    var lift = 0;
+    [["HL", 0], ["FL", .25], ["HR", .5], ["FR", .75]].forEach(function (q) {
+      var L = legs[q[0]], u = ((p / (Math.PI * 2) + q[1]) % 1 + 1) % 1, A = L.front ? .3 : .26, swing, fold;
+      if (u < .6) { swing = -A + 2 * A * (u / .6); fold = 0; }
+      else { var w = (u - .6) / .4, e = w * w * (3 - 2 * w); swing = A - 2 * A * e; fold = Math.sin(w * Math.PI); lift += fold; }
+      swing *= amt; fold *= amt;
+      if (L.front) { L.a.rotation.x = swing; L.b.rotation.x = -fold * .3; L.c.rotation.x = fold * 1.15; }      // elbow forward, wrist folds back
+      else { L.a.rotation.x = swing - fold * .15; L.b.rotation.x = fold * .55; L.c.rotation.x = -fold * .75; }  // stifle flexes, hock lifts the foot
     });
-    root.position.y = Math.abs(Math.sin(p)) * .008 * amt;
-    pelvis.rotation.z = Math.sin(p) * .03 * amt; chest.rotation.z = -Math.sin(p) * .025 * amt;
+    root.position.y = (Math.sin(p * 2) * .004 - .002) * amt;
+    pelvis.rotation.z = Math.sin(p) * .025 * amt; chest.rotation.z = Math.sin(p + 1.6) * .02 * amt; pelvis.rotation.y = Math.sin(p) * .03 * amt;
     sniff += ((moving ? 0 : 1) - sniff) * Math.min(1, dt * 2);
-    neck.rotation.x = Math.sin(p * 2) * .03 * amt + sniff * .55;
+    neck.rotation.x = Math.sin(p * 2 + .8) * .025 * amt + sniff * .55;
     head.rotation.x = sniff * .2 + (moving ? 0 : Math.sin(t * 9) * .03 * sniff);
     neck.rotation.y = sniff * Math.sin(t * .9) * .25;
     t0.rotation.z = Math.sin(t * (moving ? 3 : 1.4)) * .2; t1.rotation.z = Math.sin(t * (moving ? 3 : 1.4) - .6) * .15;
