@@ -547,7 +547,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
             "transformed.xy = vec2(q.x * cos(a) - q.y * sin(a), q.x * sin(a) + q.y * cos(a)) + vec2(-.17, -.19);"
           ].join("\n"));
           // anime-style shadow on the face: darker upper face + vertical gloom lines from the brow down (only where _face > 0)
-          if (o.geometry.attributes._face) {
+          if (o.geometry.attributes._face && window.RAINN_ANIME) {   // anime face shadow: off (eyes are painted closed now)
             sh.vertexShader = sh.vertexShader.replace("void main() {", "attribute float _face;\nvarying float vFace;\nvarying vec3 vRP;\nvoid main() {\n  vFace = _face; vRP = position;");
             sh.fragmentShader = sh.fragmentShader.replace("void main() {", "varying float vFace;\nvarying vec3 vRP;\nfloat h11(float n) { return fract(sin(n * 91.7) * 4375.85); }\nvoid main() {").replace("#include <dithering_fragment>", [
               "#include <dithering_fragment>",
