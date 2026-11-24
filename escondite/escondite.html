@@ -507,6 +507,10 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   // Model space: faces +X, seated, ~1 unit tall, hips around x -.17 / y -.19.
   // Motion is done in the vertex shader (no rig): breathing on the chest + a slow rock from the hips.
   var rainnTime = { value: 0 };
+  function loadGLTF(urls, done) {
+    if (!THREE.GLTFLoader) return;
+    (function tryLoad(k) { new THREE.GLTFLoader().load(urls[k], done, undefined, function () { if (k + 1 < urls.length) tryLoad(k + 1); }); })(0);
+  }
   function loadRainn(parent) {
     if (!THREE.GLTFLoader) return;
     // .glb on the real site; .json (same model, embedded) where .glb files are not served.
@@ -1579,13 +1583,41 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
     if (typeof make_galgo !== "function") return;
     var S = 1.5, coat = 0x9a9fa7;
     // lying one: beside rainn, a little apart, facing the same way he does
-    var lie = make_galgo({ pose: "lie", color: coat }); lie.g.scale.setScalar(S);
-    lie.g.position.set(RAINN_AT.x + .88 * 2.3 + RAINN_DIR.x * .9, 0, RAINN_AT.z - .48 * 2.3 + RAINN_DIR.z * .9); lie.g.rotation.y = -Math.PI / 2 - .15; scene.add(lie.g);
+    // sculpted greyhound (Tripo, from our own reference render): breathing + slow head turns in the vertex shader
+    var lie = { g: new THREE.Group(), tick: function () {} };
+    lie.g.position.set(RAINN_AT.x + .88 * 2.3 + RAINN_DIR.x * .9, 0, RAINN_AT.z - .48 * 2.3 + RAINN_DIR.z * .9); lie.g.rotation.y = Math.PI / 2 - .15; scene.add(lie.g);
+    loadGLTF(["galgos/galgo-echado.glb", "galgos/galgo-echado.json"], function (gltf) {
+      var m = gltf.scene, GS = 1.85;            // model is 1 unit nose-to-tail, faces -Z
+      m.scale.setScalar(GS); m.position.y = .332 * GS; lie.g.add(m);
+      m.traverse(function (o) {
+        if (!o.isMesh) return;
+        var mat = o.material; mat.roughness = 1; mat.metalness = 0; mat.envMapIntensity = .8; mat.userData.matte = true;
+        mat.onBeforeCompile = function (sh) {
+          sh.uniforms.uT = rainnTime;
+          sh.vertexShader = "uniform float uT;\n" + sh.vertexShader.replace("#include <begin_vertex>", [
+            "#include <begin_vertex>",
+            "float br = sin(uT * 1.5);",
+            // breathing: ribcage swells a little
+            "float wc = (1. - smoothstep(-.02, .12, position.y)) * smoothstep(-.3, -.12, position.z) * (1. - smoothstep(.05, .2, position.z));",
+            "transformed += objectNormal * wc * .004 * br;",
+            // head and neck: slow look left/right with a small nod, pivot at the base of the neck
+            "float wh = smoothstep(.02, .16, position.y) * (1. - smoothstep(-.24, -.1, position.z));",
+            "float yaw = wh * (.2 * sin(uT * .31) * smoothstep(.2, .6, abs(sin(uT * .155))));",
+            "float pitch = wh * (.05 * sin(uT * .5 + 1.3) + .02 * br);",
+            "vec3 pv = vec3(0., .0, -.2); vec3 q = transformed - pv;",
+            "q.xz = vec2(q.x * cos(yaw) - q.z * sin(yaw), q.x * sin(yaw) + q.z * cos(yaw));",
+            "q.yz = vec2(q.y * cos(pitch) - q.z * sin(pitch), q.y * sin(pitch) + q.z * cos(pitch));",
+            "transformed = q + pv;"
+          ].join("\n"));
+        };
+        o.castShadow = !isTouch; o.receiveShadow = true;
+      });
+    });
     // walking one: a slow loop around the room, stopping now and then to sniff
     var walk = make_galgo({ pose: "walk", color: coat }); walk.g.scale.setScalar(S); scene.add(walk.g);
     var path = new THREE.CatmullRomCurve3([[-6, 1.5], [-3, 4.6], [1.5, 5.6], [6, 2.6], [6.6, -2], [3, -5.6], [.4, -6.6], [-3.4, -7], [-5.2, -6.5], [-6.3, -2.6]].map(function (p) { return new THREE.Vector3(p[0], 0, p[1]); }), true, "catmullrom", .5);
     var len = path.getLength();
-    if (isTouch) [lie, walk].forEach(function (d) { d.g.traverse(function (o) { if (o.isMesh) o.castShadow = false; }); });
+    if (isTouch) [walk].forEach(function (d) { d.g.traverse(function (o) { if (o.isMesh) o.castShadow = false; }); });
     dogs = { lie: lie, walk: walk, path: path, len: len, u: .15, last: 0, stopUntil: 0, nextStop: 9, yaw: 0 };
     ticks.push(tickDogs);
   }
