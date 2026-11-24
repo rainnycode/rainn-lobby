@@ -1632,9 +1632,12 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   function tickDogs(t) {
     var d = dogs, dt = Math.min(.05, t - d.last || 0); d.last = t;
-    var moving = t > d.stopUntil;
-    if (moving && t > d.nextStop) { d.stopUntil = t + 2.5 + Math.random() * 2; d.nextStop = d.stopUntil + 9 + Math.random() * 8; moving = false; }
-    if (moving) d.u = (d.u + dt * .62 / d.len) % 1;
+    // mostly resting (idle: breathing, looking, sniffing); every 14-24 s a short run around the room
+    if (d.runUntil === undefined) { d.runUntil = 0; d.nextRun = 6; d.speed = 0; }
+    if (t > d.nextRun && t > d.runUntil) { d.runUntil = t + 3.2 + Math.random() * 1.5; d.nextRun = d.runUntil + 14 + Math.random() * 10; }
+    var moving = t < d.runUntil;
+    d.speed += ((moving ? 7.5 : 0) - d.speed) * Math.min(1, dt * (moving ? 2.5 : 3.5));   // accelerate / brake
+    d.u = (d.u + dt * d.speed / d.len) % 1;
     var p = d.path.getPointAt(d.u), ahead = d.path.getPointAt((d.u + .004) % 1);
     var want = Math.atan2(ahead.x - p.x, ahead.z - p.z), diff = Math.atan2(Math.sin(want - d.yaw), Math.cos(want - d.yaw));
     d.yaw += diff * Math.min(1, dt * 4);
