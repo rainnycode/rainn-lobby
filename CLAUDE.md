@@ -90,6 +90,21 @@ Intentos en Higgsfield (todo en su cuenta):
 - La paloma (página aparte) fue eliminada el 23 nov a pedido de Rubén. GitHub Pages sigue activo en el repo.
 - `.nojekyll` en la raíz para Pages.
 
+
+## Avances 24–28 nov (Claude Code) — leer esto primero en una sesión nueva
+- **Proceso de modelos que funciona:** imagen de referencia propia (gpt_image_2_6, ~0.75 cr) → Tripo P2 `texture_quality: detailed`, `face_limit: 40000` (37 cr) → bajar GLB (host d8j0ntlcm91z4 permitido en el entorno `rainn-lobby`) → comprimir texturas (`pruebas/visor/glbtex.py`) → `.json` embebido para el artifact (artifacts no sirven .glb) → `loadGLTF([glb, json])`. Siempre mostrar la imagen y pedir OK antes del 3D.
+- **Modelos IA en escena:** rainn v3 (`rainn/rainn-v3.glb`, ojos cerrados, sin tela atrás), galgo echado (`galgos/galgo-echado.glb`, respira + mueve cabeza por shader), galgo de pie (`galgos/galgo-pie.glb` + esqueleto en código `parts/galgo-rig.js`: idle, caminata con IK de patas, galope), arcade (`arcade/arcade.glb` + relleno negro + pantalla animada), cama japonesa (`cama/cama.glb`, diagonal, almohadas a la pared), sofá bajo + mesa chabudai (`sofa/sofa.glb`, mesa alargada en la malla).
+- Rincón habitado bajo el mezzanine: bandera 1080 (`tex/flag-1080.jpg`, rojo / 1080 amarillo / animales negros), bombillos cálidos, alfombra. Neverita quitada.
+- Scripts útiles en `pruebas/visor/`: `views.js`-style visor `glb.html`, `topdown.html` (orientación desde arriba), `cut.py`, `piel.py`, `rainn-hd-build.py`, `ojos-cerrados.py`, `sombra-cara.py`.
+- Créditos Higgsfield aprox. al 24 nov: ~560.
+
+## Próximo: sistema de "gotas" (moneda del juego) — idea aprobada por Rubén
+- Moneda: **gotas**. Se ganan con misiones/easter eggs: Diego ("perdí mi teléfono, necesito saber si Sebs está bien" → encontrar el teléfono → +30), pasar SALVAME KIM! (+50), escuchar las oraciones, objetos escondidos.
+- **Tienda:** reemplaza los 5 monitores de "Los números" en el mezzanine (a Rubén no le gusta esa sección ahí). Estilo inspirado en una máquina de mejoras retro de videojuego (ref. Pack-a-Punch de CoD) pero **diseño y nombre propios**, no copia.
+- Antes del álbum NO se venden canciones: snippets 10–15 s, wallpapers, oración secreta, pase del álbum (desbloquea 1 canción la semana del release); luego descuento 1080 / listas (mejor con servidor).
+- Semana del release: comprar canción = 1 reproducción por streaming.
+- Rubén quiere **servidor + login** a largo plazo (ver plan en la conversación del 28 nov). Luego: plan de "parches" semanales hasta el release.
+
 ## Pendientes
 1. Modelo de rainn orando (arriba). Luego repisa de figuras (4 personajes) y maniquí 1080 — ~34–38 créditos c/u, avisar costo.
 2. Contenido real de cada sección: links de canciones, videos (shows, singles, detrás de cámaras), screenshots de métricas, imágenes del moodboard, small team (nombres/roles), fecha de *Nepo*, avance de cada proyecto, info de personajes.
