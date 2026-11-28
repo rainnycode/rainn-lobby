@@ -105,6 +105,12 @@ Intentos en Higgsfield (todo en su cuenta):
 - Semana del release: comprar canción = 1 reproducción por streaming.
 - Rubén quiere **servidor + login** a largo plazo (ver plan en la conversación del 28 nov). Luego: plan de "parches" semanales hasta el release.
 
+
+## Supabase (28 nov) — proyecto `1080colorado` (ref gcqrmufhssizjverddxn, us-east-2), conectado por el conector
+- Ya existía `public.signups` (registro de SALVAME KIM!: nombre, email, teléfono, fecha; 63 filas / 59 emails únicos). **No tocar.** No había usuarios de Auth.
+- Migración `supabase/migrations/20261128_gotas.sql` aplicada: `perfiles` (gotas, aviso), `misiones`, `misiones_hechas`, `catalogo`, `compras`, RLS (cada uno ve lo suyo; catálogo/misiones públicos), funciones `completar_mision`, `comprar`, `ver_aviso` (solo authenticated), trigger `crear_perfil` (+20 gotas y aviso "Por haber peleado contra Kingpin…" si el email está en signups).
+- Pendiente: activar login por correo (magic link) + Google (Rubén crea credenciales OAuth en Google Cloud), conectar la página.
+
 ## Pendientes
 1. Modelo de rainn orando (arriba). Luego repisa de figuras (4 personajes) y maniquí 1080 — ~34–38 créditos c/u, avisar costo.
 2. Contenido real de cada sección: links de canciones, videos (shows, singles, detrás de cámaras), screenshots de métricas, imágenes del moodboard, small team (nombres/roles), fecha de *Nepo*, avance de cada proyecto, info de personajes.
