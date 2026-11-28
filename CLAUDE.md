@@ -109,7 +109,10 @@ Intentos en Higgsfield (todo en su cuenta):
 ## Supabase (28 nov) — proyecto `1080colorado` (ref gcqrmufhssizjverddxn, us-east-2), conectado por el conector
 - Ya existía `public.signups` (registro de SALVAME KIM!: nombre, email, teléfono, fecha; 63 filas / 59 emails únicos). **No tocar.** No había usuarios de Auth.
 - Migración `supabase/migrations/20261128_gotas.sql` aplicada: `perfiles` (gotas, aviso), `misiones`, `misiones_hechas`, `catalogo`, `compras`, RLS (cada uno ve lo suyo; catálogo/misiones públicos), funciones `completar_mision`, `comprar`, `ver_aviso` (solo authenticated), trigger `crear_perfil` (+20 gotas y aviso "Por haber peleado contra Kingpin…" si el email está en signups).
-- Pendiente: activar login por correo (magic link) + Google (Rubén crea credenciales OAuth en Google Cloud), conectar la página.
+- Config pública en `escondite/supabase-config.js` (URL + publishable key).
+- Login: Rubén configura en el dashboard (28 nov): URL Configuration (Site URL https://1080colorado.com/rainn; redirects 1080colorado.com/** y rainnycode.github.io/rainn-lobby/**) + Google OAuth (callback https://gcqrmufhssizjverddxn.supabase.co/auth/v1/callback). Probar login en GitHub Pages, no en el artifact (el iframe no deja redirecciones de OAuth).
+- Antes del lanzamiento: SMTP propio (p. ej. Resend) — el correo de Supabase tiene límite muy bajo por hora.
+- Siguiente: botón Entrar (correo/Google) + contador de gotas en el HUD + Diego y el teléfono.
 
 ## Pendientes
 1. Modelo de rainn orando (arriba). Luego repisa de figuras (4 personajes) y maniquí 1080 — ~34–38 créditos c/u, avisar costo.
