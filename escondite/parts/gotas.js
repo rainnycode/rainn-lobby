@@ -53,7 +53,7 @@
   toast.addEventListener("click", hideToast);
 
   // ---------- modal ----------
-  var lastFocus = null;
+  var lastFocus = null, tab = 0;
   function openModal() {
     lastFocus = document.activeElement; render();
     modal.hidden = false; document.body.classList.add("auth-open");
@@ -79,10 +79,18 @@
       box.innerHTML =
         '<span class="au-eb">Tu cuenta</span>' +
         '<h2>Hola, ' + esc(perfil.nombre || "") + '</h2>' +
-        '<div class="au-count">' + DROP + '<b>' + perfil.gotas + '</b><span>gotas</span></div>' +
-        '<div class="au-og" id="au-og" hidden><span class="au-og-t">Desde el inicio</span><p>Peleaste contra Kingpin en KILLPIN, el primer juego. Gracias por estar desde el principio: <b>+20 gotas</b>.</p></div>' +
-        '<p class="au-p">Gana más gotas con las misiones del escondite. Pronto vas a poder gastarlas en la tienda.</p>' +
-        '<ul class="au-mis" id="au-mis"><li class="au-load">Cargando misiones…</li></ul>' +
+        '<div class="au-tabs" role="tablist">' +
+          '<button type="button" role="tab" id="au-t0" aria-controls="au-p0" aria-selected="' + (tab === 0) + '" data-tab="0">Gotas</button>' +
+          '<button type="button" role="tab" id="au-t1" aria-controls="au-p1" aria-selected="' + (tab === 1) + '" data-tab="1">Misiones<span class="au-tc" id="au-tc"></span></button>' +
+        '</div>' +
+        '<div class="au-pane" id="au-p0" role="tabpanel" aria-labelledby="au-t0"' + (tab === 0 ? '' : ' hidden') + '>' +
+          '<div class="au-count">' + DROP + '<b>' + perfil.gotas + '</b><span>gotas</span></div>' +
+          '<div class="au-og" id="au-og" hidden><span class="au-og-t">Desde el inicio</span><p>Peleaste contra Kingpin en KILLPIN, el primer juego. Gracias por estar desde el principio: <b>+20 gotas</b>.</p></div>' +
+          '<p class="au-p">Gana más con las misiones del escondite. Pronto vas a poder gastarlas en la tienda.</p>' +
+        '</div>' +
+        '<div class="au-pane" id="au-p1" role="tabpanel" aria-labelledby="au-t1"' + (tab === 1 ? '' : ' hidden') + '>' +
+          '<ul class="au-mis" id="au-mis"><li class="au-load">Cargando misiones…</li></ul>' +
+        '</div>' +
         '<div class="au-row"><button class="au-ghost" data-close type="button">Seguir explorando</button><button class="au-link" id="au-out" type="button">Salir</button></div>';
       loadMissions();
       return;
@@ -111,6 +119,8 @@
       sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: here() } }).then(function (r) { if (r.error) msg("No se pudo abrir Google. Intenta otra vez.", true); });
       return;
     }
+    var tb = e.target.closest("[data-tab]");
+    if (tb) { setTab(+tb.dataset.tab); return; }
     if (e.target.closest("#au-out")) { sb.auth.signOut().then(function () { closeModal(); }); return; }
   });
   modal.addEventListener("submit", function (e) {
@@ -135,6 +145,11 @@
   }, true);
   btn.addEventListener("click", function () { if (modal.hidden) openModal(); else closeModal(); });
 
+  function setTab(k) {
+    if (k === tab) return; tab = k; sfx("hover");
+    modal.querySelectorAll("[data-tab]").forEach(function (b) { b.setAttribute("aria-selected", +b.dataset.tab === k); });
+    modal.querySelectorAll(".au-pane").forEach(function (p, i) { p.hidden = i !== k; });
+  }
   function loadMissions() {
     Promise.all([
       sb.from("misiones").select("id,nombre,recompensa").order("recompensa"),
@@ -149,6 +164,8 @@
         var ok = !!done[m.id], secret = m.id === "diego_telefono" && !ok;
         return '<li class="' + (ok ? "ok" : "") + '"><i aria-hidden="true"></i><span>' + esc(secret ? "???" : m.nombre) + '</span><b>+' + m.recompensa + '</b></li>';
       }).join("");
+      var list = r[0].data.filter(function (m) { return m.id !== "bienvenida_kingpin"; }), n = list.filter(function (m) { return done[m.id]; }).length;
+      var tc = $("au-tc"); if (tc) tc.textContent = n + "/" + list.length;
     });
   }
 
