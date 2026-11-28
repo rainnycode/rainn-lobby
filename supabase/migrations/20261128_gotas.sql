@@ -47,7 +47,7 @@ create index compras_item_idx on public.compras (item_id);
 
 -- ---------- datos iniciales ----------
 insert into public.misiones (id, nombre, recompensa) values
-  ('bienvenida_kingpin', 'Pelear contra Kingpin (registro de SALVAME KIM!)', 20),
+  ('bienvenida_kingpin', 'Gracias por estar desde el inicio (KILLPIN)', 20),  -- nombre actualizado el 28 nov
   ('diego_telefono',     'Devolverle el teléfono a Diego', 30),
   ('kim_completado',     'Pasar SALVAME KIM!', 50),
   ('oraciones',          'Escuchar las oraciones de rainn', 10);
@@ -113,7 +113,7 @@ begin
   return v_aviso;
 end $$;
 
--- perfil automático al crear la cuenta + bienvenida para los registrados de SALVAME KIM!
+-- perfil automático al crear la cuenta + agradecimiento (+20) para los que estuvieron desde KILLPIN (están en public.signups)
 create function public.crear_perfil()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare v_kim boolean;

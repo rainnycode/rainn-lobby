@@ -112,7 +112,10 @@ Intentos en Higgsfield (todo en su cuenta):
 - Config pública en `escondite/supabase-config.js` (URL + publishable key).
 - Login: Rubén configura en el dashboard (28 nov): URL Configuration (Site URL https://1080colorado.com/rainn; redirects 1080colorado.com/** y rainnycode.github.io/rainn-lobby/**) + Google OAuth (callback https://gcqrmufhssizjverddxn.supabase.co/auth/v1/callback). Probar login en GitHub Pages, no en el artifact (el iframe no deja redirecciones de OAuth).
 - Antes del lanzamiento: SMTP propio (p. ej. Resend) — el correo de Supabase tiene límite muy bajo por hora.
-- Siguiente: botón Entrar (correo/Google) + contador de gotas en el HUD + Diego y el teléfono.
+- **Kingpin ≠ SALVAME KIM!** Kingpin es de **KILLPIN**, el primer juego de Rubén. Las +20 gotas no son misión: son un **agradecimiento a los que estuvieron desde el inicio**. En la cuenta salen en un recuadro aparte ("Desde el inicio"), no en la lista de misiones.
+- **Login hecho (28 nov):** `escondite/parts/gotas.js` + supabase-js 2.49.4 (`vendor/supabase.js` en index.html; jsDelivr en el fragmento). Botón Entrar/contador bajo Sonido, modal (Google o link al correo), cuenta con misiones, aviso al entrar, toast "+N gotas". Gotas en **azul** (`--gota: #3aa8ff`). API: `Gotas.completar(id)`, `Gotas.comprar(id)`, `Gotas.abrir()`, `Gotas.onChange(fn)`. Misión `oraciones` se cobra al escuchar 3 oraciones. En iframe (artifact) el login sale desactivado.
+- Google OAuth: provider activado en Supabase; la app de Google está en modo Testing (agregar test users o Publish app).
+- Siguiente: Diego y el teléfono (`Gotas.completar('diego_telefono')`), luego la tienda.
 
 ## Pendientes
 1. Modelo de rainn orando (arriba). Luego repisa de figuras (4 personajes) y maniquí 1080 — ~34–38 créditos c/u, avisar costo.

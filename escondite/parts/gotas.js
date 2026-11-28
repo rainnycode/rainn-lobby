@@ -80,6 +80,7 @@
         '<span class="au-eb">Tu cuenta</span>' +
         '<h2>Hola, ' + esc(perfil.nombre || "") + '</h2>' +
         '<div class="au-count">' + DROP + '<b>' + perfil.gotas + '</b><span>gotas</span></div>' +
+        '<div class="au-og" id="au-og" hidden><span class="au-og-t">Desde el inicio</span><p>Peleaste contra Kingpin en KILLPIN, el primer juego. Gracias por estar desde el principio: <b>+20 gotas</b>.</p></div>' +
         '<p class="au-p">Gana más gotas con las misiones del escondite. Pronto vas a poder gastarlas en la tienda.</p>' +
         '<ul class="au-mis" id="au-mis"><li class="au-load">Cargando misiones…</li></ul>' +
         '<div class="au-row"><button class="au-ghost" data-close type="button">Seguir explorando</button><button class="au-link" id="au-out" type="button">Salir</button></div>';
@@ -142,7 +143,9 @@
       var ul = $("au-mis"); if (!ul) return;
       if (r[0].error) { ul.innerHTML = ""; return; }
       var done = {}; (r[1].data || []).forEach(function (m) { done[m.mision_id] = 1; });
-      ul.innerHTML = r[0].data.filter(function (m) { return m.id !== "bienvenida_kingpin" || done[m.id]; }).map(function (m) {
+      // Kingpin no es misión: es un agradecimiento a los que estuvieron desde KILLPIN, el primer juego.
+      var og = $("au-og"); if (og && done.bienvenida_kingpin) og.hidden = false;
+      ul.innerHTML = r[0].data.filter(function (m) { return m.id !== "bienvenida_kingpin"; }).map(function (m) {
         var ok = !!done[m.id], secret = m.id === "diego_telefono" && !ok;
         return '<li class="' + (ok ? "ok" : "") + '"><i aria-hidden="true"></i><span>' + esc(secret ? "???" : m.nombre) + '</span><b>+' + m.recompensa + '</b></li>';
       }).join("");
