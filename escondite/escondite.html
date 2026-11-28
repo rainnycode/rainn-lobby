@@ -56,6 +56,63 @@ body.touch #intro .demo { display: none; }
 #open-chip { display: none; margin-top: 8px; font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .04em; color: #fff; background: var(--red); border: 0; padding: 10px 16px; min-height: 40px; cursor: pointer; transition: transform 140ms var(--ease-out); box-shadow: 0 6px 18px rgba(255,35,56,.35); }
 #open-chip:active { transform: scale(.96); }
 
+
+/* Gotas: botón del HUD, cuenta y avisos */
+#gotas { align-self: flex-start; display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--fg); background: var(--glass); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,35,56,.45); padding: 7px 12px 7px 10px; min-height: 36px; cursor: pointer; transition: transform 140ms var(--ease-out), border-color 150ms ease, background-color 150ms ease; }
+#gotas svg { width: 14px; height: 14px; fill: var(--red); flex: none; }
+#gotas b { font-family: var(--display); font-size: 17px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+#gotas b:empty { display: none; }
+#gotas.in span { color: var(--muted); font-size: 11px; }
+#gotas.off { display: none; }
+#gotas:active { transform: scale(.96); }
+@media (hover: hover) and (pointer: fine) { #gotas:hover { border-color: var(--red); background: rgba(255,35,56,.12); } }
+#gotas.bump svg { animation: gBump 600ms var(--ease-out); }
+@keyframes gBump { 0% { transform: scale(1); } 30% { transform: scale(1.45) translateY(-2px); } 100% { transform: scale(1); } }
+
+#auth { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgba(3,4,6,.0); transition: background-color 220ms ease; }
+#auth.open { background: rgba(3,4,6,.62); }
+#auth .au-box { width: min(420px, 100%); max-height: calc(100dvh - 32px); overflow: auto; background: #0a0c10; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.7); padding: 26px 24px 22px; display: flex; flex-direction: column; gap: 14px; opacity: 0; transform: translateY(10px) scale(.97); transition: opacity 220ms var(--ease-out), transform 260ms var(--ease-out); }
+#auth.open .au-box { opacity: 1; transform: none; }
+.au-eb { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--red); }
+#auth h2 { margin: -4px 0 0; font-family: var(--display); font-weight: 800; font-size: 30px; letter-spacing: -.03em; line-height: 1.05; }
+.au-p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.au-warn { margin: 0; font-size: 14px; color: var(--fg); border-left: 2px solid var(--red); padding: 4px 0 4px 10px; }
+#auth button { font: inherit; cursor: pointer; transition: transform 140ms var(--ease-out), background-color 150ms ease, border-color 150ms ease; }
+#auth button:active:not(:disabled) { transform: scale(.97); }
+#auth button:disabled, #auth input:disabled { opacity: .4; cursor: not-allowed; }
+.au-google { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 50px; font-weight: 600 !important; font-size: 16px !important; color: #111; background: #f1f1f1; border: 0; }
+.au-google svg { width: 20px; height: 20px; }
+@media (hover: hover) and (pointer: fine) { .au-google:hover:not(:disabled) { background: #fff; } .au-red:hover:not(:disabled) { background: var(--red-soft); } .au-ghost:hover { border-color: var(--dim); color: var(--fg); } }
+.au-or { display: flex; align-items: center; gap: 10px; color: var(--dim); font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.au-or::before, .au-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+#au-form { display: flex; flex-direction: column; gap: 8px; }
+.au-lab { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+#au-email { font: inherit; font-size: 16px; color: var(--fg); background: #050608; border: 1px solid var(--line); padding: 13px 14px; min-height: 50px; outline: none; transition: border-color 150ms ease; }
+#au-email:focus { border-color: var(--red); }
+.au-red { min-height: 50px; font-weight: 700 !important; font-size: 15px !important; color: #fff; background: var(--red); border: 0; }
+.au-ghost { min-height: 46px; color: var(--muted); background: transparent; border: 1px solid var(--line); font-size: 15px !important; }
+.au-link { min-height: 46px; background: none; border: 0; color: var(--dim); font-size: 14px !important; text-decoration: underline; text-underline-offset: 3px; }
+.au-row { display: flex; gap: 10px; align-items: center; } .au-row .au-ghost { flex: 1; }
+.au-msg { margin: 0; min-height: 1.4em; font-size: 14px; line-height: 1.4; color: #9be29b; } .au-msg.bad { color: var(--red-soft); } .au-msg:empty { display: none; }
+.au-count { display: flex; align-items: baseline; gap: 10px; padding: 14px 16px; background: #050608; border: 1px solid var(--line); }
+.au-count svg { width: 22px; height: 22px; fill: var(--red); align-self: center; }
+.au-count b { font-family: var(--display); font-weight: 800; font-size: 44px; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.au-count span { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.au-mis { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.au-mis li { display: flex; align-items: center; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--line); font-size: 15px; color: var(--muted); }
+.au-mis li span { flex: 1; } .au-mis li b { font-family: var(--mono); font-size: 13px; color: var(--dim); }
+.au-mis li i { width: 14px; height: 14px; border: 1.5px solid var(--dim); flex: none; }
+.au-mis li.ok { color: var(--fg); } .au-mis li.ok b { color: var(--red); }
+.au-mis li.ok i { border-color: var(--red); background: var(--red); box-shadow: inset 0 0 0 2px #0a0c10; }
+.au-mis .au-load { color: var(--dim); }
+
+#gtoast { position: fixed; z-index: 25; left: 50%; top: calc(86px + env(safe-area-inset-top, 0px)); width: max-content; max-width: min(420px, calc(100vw - 32px)); transform: translate(-50%, -8px); opacity: 0; background: #07080a; border: 1px solid rgba(255,35,56,.5); box-shadow: 0 18px 50px rgba(0,0,0,.6); padding: 14px 18px; text-align: center; cursor: pointer; transition: opacity 240ms var(--ease-out), transform 260ms var(--ease-out); }
+#gtoast.show { opacity: 1; transform: translate(-50%, 0); }
+.gt-big { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -.02em; }
+.gt-big svg { width: 20px; height: 20px; fill: var(--red); }
+.gt-small { margin-top: 4px; font-size: 15px; line-height: 1.4; color: var(--muted); } .gt-small:empty { display: none; }
+@media (prefers-reduced-motion: reduce) { #auth .au-box, #gtoast { transform: none !important; } #gotas.bump svg { animation: none; } }
+
 /* HUD */
 .hud-top { position: fixed; z-index: 4; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-top: calc(14px + env(safe-area-inset-top, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); pointer-events: none; }
 .brand { display: flex; flex-direction: column; gap: 2px; pointer-events: auto; }
@@ -241,7 +298,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
 <div id="lock-label" hidden><span class="n"></span><span class="s"></span><button id="open-chip" type="button">Toca para abrir</button></div>
 
 <div class="hud-top">
-  <div class="brand"><b>rainn</b><span>El escondite · 1080</span><button id="snd" type="button" aria-pressed="true"><i aria-hidden="true"></i><span>Sonido</span></button></div>
+  <div class="brand"><b>rainn</b><span>El escondite · 1080</span><button id="snd" type="button" aria-pressed="true"><i aria-hidden="true"></i><span>Sonido</span></button><button id="gotas" type="button" aria-haspopup="dialog" aria-controls="auth"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c0 0-6.8 7.6-6.8 12.4a6.8 6.8 0 0013.6 0C18.8 10.1 12 2.5 12 2.5z"/></svg><b id="gotas-n"></b><span id="gotas-l">Entrar</span></button></div>
   <div class="map-wrap"><canvas id="minimap" width="288" height="240" aria-label="Mini-mapa del escondite"></canvas><span>Mapa</span></div>
 </div>
 
@@ -251,6 +308,9 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
 
 <nav class="hud-bottom" aria-label="Secciones"><div id="menu"></div><button id="sec-btn" type="button" aria-haspopup="dialog" aria-controls="sheet"><span class="ic" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Secciones<span class="ct" id="sec-ct"></span></button></nav>
 <div id="sheet" aria-hidden="true"><div class="bd"></div><div class="sh" role="dialog" aria-modal="true" aria-label="Secciones"><div class="sh-top"><b>Secciones</b><span>Toca para ir</span></div><div id="sheet-list"></div></div></div>
+
+<div id="auth" hidden role="dialog" aria-modal="true" aria-label="Cuenta y gotas"><div class="au-box"></div></div>
+<div id="gtoast" hidden role="status" aria-live="polite"><div class="gt-big"></div><div class="gt-small"></div></div>
 
 <aside class="panel" id="panel" aria-hidden="true" aria-labelledby="panel-title">
   <div class="panel-head"><span class="eb" id="panel-eb"></span><button id="back" type="button">← Volver</button></div>
@@ -278,6 +338,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="parts/galgo.js"></script>
 <script src="parts/galgo-rig.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
 <script>
 (function () {
   "use strict";
@@ -1771,6 +1832,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   // Subtle UI sounds, synthesized; they follow the master volume and the mute button.
   var sfxLast = {};
+  window.escSfx = function (k) { sfx(k); };
   function sfx(kind) {
     if (!audio.ctx || !audio.on) return;
     var now = performance.now(); if (now - (sfxLast[kind] || 0) < (kind === "blip" ? 40 : 70)) return; sfxLast[kind] = now;
@@ -1912,7 +1974,7 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   }
   function choose(k) {
     showOpts(false); sfx(k === 0 ? "select" : "back");
-    if (k === 0) { talk.step = 2; typeLine(nextPrayer(), 50, function () { talk.step = 3; showOpts(true, true); }); }
+    if (k === 0) { talk.step = 2; talk.heard = (talk.heard || 0) + 1; var heard = talk.heard; typeLine(nextPrayer(), 50, function () { talk.step = 3; showOpts(true, true); if (heard === 3 && window.Gotas) window.Gotas.completar("oraciones"); }); }
     else endTalk();
   }
   function advance() {
@@ -2172,3 +2234,4 @@ body.talking .hud-bottom, body.talking #hint { opacity: 0; pointer-events: none;
   init();
 })();
 </script>
+<script src="parts/gotas.js"></script>
